@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import Base, engine
@@ -8,9 +9,12 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="LovingApp API", version="1.0.0")
 
+_extra = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+_origins = ["http://localhost:3000", "http://localhost:80", "http://localhost"] + _extra
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:80", "http://localhost"],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
