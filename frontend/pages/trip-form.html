@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Viaje — LovingApp</title>
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="container-sm">
+    <a href="/pages/trips.html" class="back-link">← Volver a viajes</a>
+
+    <div style="margin-bottom:1.75rem;">
+        <h1 class="page-title" id="page-title">Nuevo viaje</h1>
+        <p class="page-subtitle" id="page-subtitle">Completá los datos del viaje</p>
+    </div>
+
+    <div class="surface surface-p">
+        <div id="alert-container" style="margin-bottom:1rem;"></div>
+
+        <form id="trip-form" class="form-stack">
+
+            <div class="form-grid form-grid-2">
+                <div class="form-group">
+                    <label class="form-label" for="destination">Destino *</label>
+                    <input class="form-input" type="text" id="destination"
+                           placeholder="París, Roma, Tokio..." required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="country">País</label>
+                    <input class="form-input" type="text" id="country"
+                           placeholder="Francia, Italia..." />
+                </div>
+            </div>
+
+            <div class="form-grid form-grid-2">
+                <div class="form-group">
+                    <label class="form-label" for="departure_date">Fecha de salida *</label>
+                    <input class="form-input" type="date" id="departure_date" required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="return_date">Fecha de regreso</label>
+                    <input class="form-input" type="date" id="return_date" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Ícono del viaje</label>
+                <div class="emoji-grid" id="emoji-picker"></div>
+                <input type="hidden" id="cover_emoji" value="✈️" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="description">Descripción</label>
+                <textarea class="form-input" id="description"
+                          placeholder="Planes, actividades, hoteles, notas..."></textarea>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit" id="btn-submit">
+                    Crear viaje
+                </button>
+                <a href="/pages/trips.html" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+    const EMOJIS = ["✈️","🏖️","🏔️","🗺️","🌍","🏕️","🚢","🎡","🌅","❄️"];
+    const params = new URLSearchParams(window.location.search);
+    const tripId = params.get("id");
+
+    function buildEmojiPicker(selected = "✈️") {
+        const picker = document.getElementById("emoji-picker");
+        picker.innerHTML = EMOJIS.map(e => `
+            <div>
+                <input type="radio" name="emoji" id="em-${e}" value="${e}"
+                       ${e === selected ? "checked" : ""}>
+                <label for="em-${e}">${e}</label>
+            </div>
+        `).join("");
+        picker.querySelectorAll("input").forEach(r =>
+            r.addEventListener("change", () => {
+                document.getElementById("cover_emoji").value = r.value;
+            })
+        );
+        document.getElementById("cover_emoji").value = selected;
+    }
+
+    function fillForm(trip) {
+        document.getElementById("destination").value   = trip.destination || "";
+        document.getElementById("country").value       = trip.country || "";
+        document.getElementById("departure_date").value = trip.departure_date || "";
+        document.getElementById("return_date").value   = trip.return_date || "";
+        document.getElementById("description").value   = trip.description || "";
+        buildEmojiPicker(trip.cover_emoji || "✈️");
+        document.getElementById("page-title").textContent    = "Editar viaje";
+        document.getElementById("page-subtitle").textContent = "Modificá los datos del viaje";
+        document.getElementById("btn-submit").textContent    = "Guardar cambios";
+    }
+
+    document.getElementById("trip-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btn-submit");
+        btn.disabled = true;
+        const body = {
+            destination:    document.getElementById("destination").value.trim(),
+            country:        document.getElementById("country").value.trim() || null,
+            departure_date: document.getElementById("departure_date").value,
+            return_date:    document.getElementById("return_date").value || null,
+            description:    document.getElementById("description").value.trim() || null,
+            cover_emoji:    document.getElementById("cover_emoji").value,
+        };
+        try {
+            tripId ? await api.updateTrip(tripId, body) : await api.createTrip(body);
+            window.location.href = "/pages/trips.html";
+        } catch (err) {
+            showAlert("alert-container", err.message, "error");
+            btn.disabled = false;
+        }
+    });
+
+    (async () => {
+        await requireAuth();
+        buildEmojiPicker();
+        if (tripId) {
+            try {
+                const trip = await api.getTrip(tripId);
+                fillForm(trip);
+            } catch {
+                window.location.href = "/pages/trips.html";
+            }
+        }
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Viajes — LovingApp</title>
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="container">
+    <div class="section-header">
+        <div>
+            <h1 class="page-title">Viajes</h1>
+            <p class="page-subtitle">Tus próximas aventuras</p>
+        </div>
+        <a href="/pages/trip-form.html" class="btn btn-primary">Nuevo viaje</a>
+    </div>
+
+    <div id="trips-container"><div class="spinner"></div></div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+    let timerInterval = null;
+    let futureTrips   = [];
+
+    function renderCountdown(trip) {
+        const d = trip.days_left;
+        if (d > 0) return `
+            <div class="countdown">
+                <div class="trip-meta-label">Tiempo restante</div>
+                <div class="countdown-row">
+                    <span class="countdown-number">${d}</span>
+                    <span class="countdown-unit">días</span>
+                </div>
+                <div class="countdown-timer" id="timer-${trip.id}">—</div>
+            </div>`;
+        if (d === 0) return `<div class="countdown"><span class="countdown-badge today">Hoy es el día</span></div>`;
+        return `<div class="countdown"><span class="countdown-badge past">Hace ${Math.abs(d)} días</span></div>`;
+    }
+
+    function renderTrip(trip) {
+        return `
+        <a class="trip-card" href="/pages/trip-detail.html?id=${trip.id}">
+            <div class="trip-card-top">
+                <span class="trip-tag">${trip.country || "Viaje"}</span>
+                <div class="trip-actions" onclick="event.preventDefault()">
+                    <button class="btn-icon" title="Editar"
+                            onclick="event.stopPropagation(); window.location.href='/pages/trip-form.html?id=${trip.id}'">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:14px;height:14px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" title="Eliminar"
+                            onclick="event.stopPropagation(); deleteTrip(${trip.id}, '${trip.destination.replace(/'/g,"\\'")}')">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:14px;height:14px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="trip-destination">${trip.destination}</div>
+            ${trip.country ? `<div class="trip-country">${trip.country}</div>` : ""}
+            ${trip.description ? `<div class="trip-description">${trip.description}</div>` : ""}
+
+            <div class="trip-meta">
+                <div class="trip-meta-item">
+                    <span class="trip-meta-label">Salida</span>
+                    <span class="trip-meta-value">${formatDate(trip.departure_date)}</span>
+                </div>
+                ${trip.return_date ? `
+                <div class="trip-meta-item">
+                    <span class="trip-meta-label">Regreso</span>
+                    <span class="trip-meta-value">${formatDate(trip.return_date)}</span>
+                </div>` : ""}
+            </div>
+
+            ${renderCountdown(trip)}
+        </a>`;
+    }
+
+    function startTimers() {
+        if (timerInterval) clearInterval(timerInterval);
+        const pending = futureTrips.filter(t => t.days_left > 0);
+        if (!pending.length) return;
+        timerInterval = setInterval(() => {
+            const now = new Date();
+            pending.forEach(trip => {
+                const el = document.getElementById(`timer-${trip.id}`);
+                if (!el) return;
+                const diff = new Date(trip.departure_date + "T00:00:00") - now;
+                if (diff <= 0) { el.textContent = "Hoy"; return; }
+                const h = String(Math.floor(diff / 3600000) % 24).padStart(2, "0");
+                const m = String(Math.floor(diff / 60000)  % 60).padStart(2, "0");
+                const s = String(Math.floor(diff / 1000)   % 60).padStart(2, "0");
+                el.textContent = `${h}:${m}:${s}`;
+            });
+        }, 1000);
+    }
+
+    async function loadTrips() {
+        const container = document.getElementById("trips-container");
+        try {
+            const trips = await api.getTrips();
+            futureTrips = trips;
+            if (!trips.length) {
+                container.innerHTML = `
+                    <div class="surface surface-p empty-state">
+                        <div class="empty-state-icon">
+                            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/>
+                            </svg>
+                        </div>
+                        <h2>Sin viajes todavía</h2>
+                        <p>Empezá a planear tu próxima aventura.</p>
+                        <a href="/pages/trip-form.html" class="btn btn-primary">Agregar viaje</a>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = `<div class="trips-grid">${trips.map(renderTrip).join("")}</div>`;
+            startTimers();
+        } catch (err) {
+            container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+        }
+    }
+
+    async function deleteTrip(id, name) {
+        if (!confirm(`¿Eliminar el viaje a ${name}?`)) return;
+        try {
+            await api.deleteTrip(id);
+            if (timerInterval) clearInterval(timerInterval);
+            loadTrips();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    (async () => {
+        await requireAuth();
+        await loadTrips();
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Perfil — LovingApp</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <style>
+        /* ── Partner section ── */
+        .partner-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+        .partner-header {
+            background: linear-gradient(135deg, var(--rose-bg) 0%, var(--bg-2) 100%);
+            padding: 1rem 1.25rem;
+            font-size: .75rem; font-weight: 700; letter-spacing: .05em;
+            text-transform: uppercase; color: var(--text-3);
+            border-bottom: 1px solid var(--border);
+        }
+        .partner-body { padding: 1.25rem; }
+
+        .partner-linked {
+            display: flex; align-items: center; gap: 1rem;
+        }
+        .partner-avatar {
+            width: 52px; height: 52px; border-radius: 50%;
+            background: var(--rose-bg); border: 2px solid var(--rose-l);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; font-weight: 700; color: var(--rose-d);
+            overflow: hidden; flex-shrink: 0;
+        }
+        .partner-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .partner-name   { font-size: 1rem; font-weight: 700; }
+        .partner-handle { font-size: .8rem; color: var(--text-3); }
+        .partner-badge  {
+            display: inline-flex; align-items: center; gap: .3rem;
+            font-size: .7rem; font-weight: 700; color: var(--rose-d);
+            background: var(--rose-bg); padding: .2rem .6rem;
+            border-radius: 99px; margin-top: .25rem;
+        }
+        .partner-badge svg { width: 11px; height: 11px; }
+
+        .invite-form { display: flex; gap: .625rem; }
+        .invite-form .form-input { flex: 1; }
+
+        .pending-box {
+            background: var(--rose-bg);
+            border: 1px dashed var(--rose-l);
+            border-radius: var(--radius);
+            padding: 1rem 1.125rem;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: .75rem;
+        }
+        .pending-info { display: flex; flex-direction: column; gap: .2rem; }
+        .pending-label { font-size: .72rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; }
+        .pending-name  { font-size: .9rem; font-weight: 600; }
+        .pending-actions { display: flex; gap: .5rem; }
+    </style>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="container-sm">
+    <div style="margin-bottom:1.75rem;">
+        <h1 class="page-title">Mi perfil</h1>
+        <p class="page-subtitle">Actualizá tu información y tu pareja</p>
+    </div>
+
+    <!-- ── Perfil ── -->
+    <div class="surface surface-p" style="margin-bottom:1.25rem;">
+        <div class="profile-info-row" id="profile-header">
+            <div class="spinner" style="margin:0;"></div>
+        </div>
+        <div class="divider"></div>
+        <div id="alert-profile" style="margin-bottom:1rem;"></div>
+        <form id="profile-form" class="form-stack" style="display:none;">
+            <div class="form-group">
+                <label class="form-label">Nombre completo</label>
+                <input class="form-input" type="text" id="full_name" placeholder="Tu nombre" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input class="form-input" type="email" id="email" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">URL de foto de perfil</label>
+                <input class="form-input" type="url" id="avatar_url" placeholder="https://..." />
+            </div>
+            <div class="divider"></div>
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit" id="btn-save">Guardar cambios</button>
+            </div>
+        </form>
+        <div id="profile-footer" style="display:none; margin-top:1.25rem;">
+            <p class="text-muted" id="member-since"></p>
+        </div>
+    </div>
+
+    <!-- ── Pareja ── -->
+    <div class="partner-card">
+        <div class="partner-header">Mi pareja</div>
+        <div class="partner-body" id="couple-body">
+            <div class="spinner" style="margin:1rem auto;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+let currentUser = null;
+
+// ── Perfil ────────────────────────────────────────────────
+function renderProfileHeader(user) {
+    const name = user.full_name || user.username;
+    const avatarContent = user.avatar_url
+        ? `<img src="${user.avatar_url}" alt="avatar" />`
+        : `<span class="profile-avatar-initials">${initials(name)}</span>`;
+    document.getElementById("profile-header").innerHTML = `
+        <div class="profile-avatar-ring">${avatarContent}</div>
+        <div>
+            <div class="profile-name">${name}</div>
+            <div class="profile-handle">@${user.username}</div>
+            ${user.is_admin ? '<span class="badge-admin">Administrador</span>' : ""}
+        </div>`;
+}
+
+document.getElementById("profile-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("btn-save");
+    btn.disabled = true;
+    try {
+        const updated = await api.updateProfile({
+            full_name:  document.getElementById("full_name").value.trim()  || null,
+            email:      document.getElementById("email").value.trim()      || null,
+            avatar_url: document.getElementById("avatar_url").value.trim() || null,
+        });
+        currentUser = updated;
+        renderProfileHeader(updated);
+        showAlert("alert-profile", "Cambios guardados", "success");
+    } catch (err) {
+        showAlert("alert-profile", err.message, "error");
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+// ── Couple ────────────────────────────────────────────────
+async function loadCouple() {
+    const body = document.getElementById("couple-body");
+    try {
+        const s = await api.getCoupleStatus();
+        renderCouple(s);
+    } catch (err) {
+        body.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    }
+}
+
+function renderCouple(s) {
+    const body = document.getElementById("couple-body");
+
+    if (s.status === "accepted") {
+        const p = s.partner;
+        const name = p.full_name || p.username;
+        const av = p.avatar_url
+            ? `<img src="${p.avatar_url}" />`
+            : `<span style="font-size:1rem;font-weight:700;color:var(--rose-d);">${initials(name)}</span>`;
+        body.innerHTML = `
+            <div class="partner-linked">
+                <div class="partner-avatar">${av}</div>
+                <div style="flex:1;">
+                    <div class="partner-name">${name}</div>
+                    <div class="partner-handle">@${p.username}</div>
+                    <div class="partner-badge">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/>
+                        </svg>
+                        En pareja
+                    </div>
+                </div>
+                <button class="btn btn-ghost btn-sm" id="btn-unlink">Desvincular</button>
+            </div>`;
+        document.getElementById("btn-unlink").addEventListener("click", async () => {
+            if (!confirm(`¿Desvincular tu pareja con @${p.username}? Ya no compartirán viajes.`)) return;
+            try {
+                const res = await api.unlinkCouple();
+                renderCouple(res);
+            } catch (err) {
+                showAlert("alert-profile", err.message, "error");
+            }
+        });
+        return;
+    }
+
+    if (s.status === "pending_sent") {
+        const p = s.partner;
+        body.innerHTML = `
+            <div class="pending-box">
+                <div class="pending-info">
+                    <span class="pending-label">Invitación enviada a</span>
+                    <span class="pending-name">@${p.username}${p.full_name ? " · " + p.full_name : ""}</span>
+                </div>
+                <div class="pending-actions">
+                    <button class="btn btn-ghost btn-sm" id="btn-cancel-invite">Cancelar</button>
+                </div>
+            </div>
+            <p class="text-muted" style="margin-top:.75rem;">
+                Cuando @${p.username} acepte, van a compartir todos sus viajes.
+            </p>`;
+        document.getElementById("btn-cancel-invite").addEventListener("click", async () => {
+            try {
+                const res = await api.cancelCouple();
+                renderCouple(res);
+            } catch (err) {
+                showAlert("alert-profile", err.message, "error");
+            }
+        });
+        return;
+    }
+
+    if (s.status === "pending_received") {
+        const p = s.partner;
+        body.innerHTML = `
+            <div class="pending-box">
+                <div class="pending-info">
+                    <span class="pending-label">Invitación recibida de</span>
+                    <span class="pending-name">@${p.username}${p.full_name ? " · " + p.full_name : ""}</span>
+                </div>
+                <div class="pending-actions">
+                    <button class="btn btn-primary btn-sm" id="btn-accept">Aceptar</button>
+                    <button class="btn btn-ghost btn-sm" id="btn-reject">Rechazar</button>
+                </div>
+            </div>
+            <p class="text-muted" style="margin-top:.75rem;">
+                Si aceptás, van a ver y editar los viajes de los dos.
+            </p>`;
+        document.getElementById("btn-accept").addEventListener("click", async () => {
+            try {
+                const res = await api.acceptCouple();
+                renderCouple(res);
+                showAlert("alert-profile", `¡Ahora están vinculados con @${p.username}!`, "success");
+            } catch (err) {
+                showAlert("alert-profile", err.message, "error");
+            }
+        });
+        document.getElementById("btn-reject").addEventListener("click", async () => {
+            try {
+                const res = await api.rejectCouple();
+                renderCouple(res);
+            } catch (err) {
+                showAlert("alert-profile", err.message, "error");
+            }
+        });
+        return;
+    }
+
+    // none — mostrar formulario de invitación
+    body.innerHTML = `
+        <p style="font-size:.875rem;color:var(--text-2);margin-bottom:1rem;">
+            Vinculá tu cuenta con la de tu pareja para compartir viajes y planear juntos.
+        </p>
+        <div id="alert-couple" style="margin-bottom:.75rem;"></div>
+        <div class="invite-form">
+            <input class="form-input" type="text" id="invite-username"
+                   placeholder="@usuario de tu pareja" />
+            <button class="btn btn-primary" id="btn-invite">Invitar</button>
+        </div>`;
+
+    document.getElementById("btn-invite").addEventListener("click", async () => {
+        const username = document.getElementById("invite-username").value.trim().replace(/^@/, "");
+        if (!username) return;
+        const btn = document.getElementById("btn-invite");
+        btn.disabled = true;
+        try {
+            const res = await api.invite(username);
+            renderCouple(res);
+        } catch (err) {
+            document.getElementById("alert-couple").innerHTML =
+                `<div class="alert alert-error">${err.message}</div>`;
+            btn.disabled = false;
+        }
+    });
+
+    // Enter en el input
+    document.getElementById("invite-username").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") document.getElementById("btn-invite").click();
+    });
+}
+
+// ── Init ──────────────────────────────────────────────────
+(async () => {
+    currentUser = await requireAuth();
+    if (!currentUser) return;
+
+    renderProfileHeader(currentUser);
+    document.getElementById("full_name").value  = currentUser.full_name  || "";
+    document.getElementById("email").value      = currentUser.email      || "";
+    document.getElementById("avatar_url").value = currentUser.avatar_url || "";
+    document.getElementById("profile-form").style.display   = "";
+    document.getElementById("profile-footer").style.display = "";
+    document.getElementById("member-since").textContent =
+        `Miembro desde ${formatDate(currentUser.created_at?.slice(0,10))}`;
+
+    loadCouple();
+})();
+</script>
+</body>
+</html>

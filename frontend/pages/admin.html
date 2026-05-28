@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Usuarios — LovingApp</title>
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="container">
+    <div class="section-header">
+        <div>
+            <h1 class="page-title">Usuarios</h1>
+            <p class="page-subtitle">Gestión de accesos</p>
+        </div>
+        <button class="btn btn-primary" id="btn-toggle-form">Nuevo usuario</button>
+    </div>
+
+    <div id="alert-container" style="margin-bottom:1rem;"></div>
+
+    <!-- Formulario colapsable -->
+    <div id="new-user-panel" class="panel" style="display:none;">
+        <div class="panel-title">Crear usuario</div>
+        <form id="user-form">
+            <div class="form-grid form-grid-2" style="margin-bottom:1rem;">
+                <div class="form-group">
+                    <label class="form-label">Usuario *</label>
+                    <input class="form-input" type="text" id="new-username" required placeholder="usuario123" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email *</label>
+                    <input class="form-input" type="email" id="new-email" required placeholder="email@ejemplo.com" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nombre completo</label>
+                    <input class="form-input" type="text" id="new-fullname" placeholder="Nombre" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Contraseña *</label>
+                    <input class="form-input" type="password" id="new-password" required placeholder="••••••••" />
+                </div>
+            </div>
+            <div class="checkbox-row" style="margin-bottom:1.25rem;">
+                <input type="checkbox" id="new-is-admin" />
+                <label for="new-is-admin">Es administrador</label>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit" id="btn-create">Crear usuario</button>
+                <button class="btn btn-ghost" type="button" id="btn-cancel">Cancelar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla -->
+    <div class="surface surface-flush">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Registro</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="users-tbody">
+                    <tr><td colspan="5"><div class="spinner"></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+    let adminUser = null;
+
+    function renderUsers(users) {
+        const tbody = document.getElementById("users-tbody");
+        if (!users.length) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:2rem;">Sin usuarios registrados</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = users.map(u => {
+            const name = u.full_name || u.username;
+            const avatarContent = u.avatar_url
+                ? `<img src="${u.avatar_url}" />`
+                : `<span style="font-size:.7rem;font-weight:700;color:var(--text-2);">${initials(name)}</span>`;
+
+            return `<tr>
+                <td>
+                    <div class="user-cell">
+                        <div class="user-avatar-sm">${avatarContent}</div>
+                        <div>
+                            <div class="user-name">${name}</div>
+                            <div class="user-handle">@${u.username}</div>
+                        </div>
+                    </div>
+                </td>
+                <td style="color:var(--text-2);">${u.email}</td>
+                <td>
+                    <span class="badge ${u.is_admin ? "badge-role-admin" : "badge-role-user"}">
+                        ${u.is_admin ? "Admin" : "Usuario"}
+                    </span>
+                </td>
+                <td class="text-muted">${formatDate(u.created_at?.slice(0,10))}</td>
+                <td style="text-align:right;">
+                    ${u.id !== adminUser?.id
+                        ? `<button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id}, '${u.username}')">Eliminar</button>`
+                        : `<span class="text-muted">Tu cuenta</span>`}
+                </td>
+            </tr>`;
+        }).join("");
+    }
+
+    async function loadUsers() {
+        try {
+            const users = await api.getUsers();
+            renderUsers(users);
+        } catch (err) {
+            showAlert("alert-container", err.message, "error");
+        }
+    }
+
+    async function deleteUser(id, username) {
+        if (!confirm(`¿Eliminar al usuario @${username}? Esta acción no se puede deshacer.`)) return;
+        try {
+            await api.deleteUser(id);
+            showAlert("alert-container", `Usuario @${username} eliminado`, "success");
+            loadUsers();
+        } catch (err) {
+            showAlert("alert-container", err.message, "error");
+        }
+    }
+
+    const panel = document.getElementById("new-user-panel");
+    document.getElementById("btn-toggle-form").addEventListener("click", () => {
+        panel.style.display = panel.style.display === "none" ? "" : "none";
+    });
+    document.getElementById("btn-cancel").addEventListener("click", () => {
+        panel.style.display = "none";
+        document.getElementById("user-form").reset();
+    });
+
+    document.getElementById("user-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btn-create");
+        btn.disabled = true;
+        try {
+            const newU = await api.createUser({
+                username:  document.getElementById("new-username").value.trim(),
+                email:     document.getElementById("new-email").value.trim(),
+                password:  document.getElementById("new-password").value,
+                full_name: document.getElementById("new-fullname").value.trim() || null,
+                is_admin:  document.getElementById("new-is-admin").checked,
+            });
+            panel.style.display = "none";
+            document.getElementById("user-form").reset();
+            showAlert("alert-container", `Usuario @${newU.username} creado`, "success");
+            loadUsers();
+        } catch (err) {
+            showAlert("alert-container", err.message, "error");
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    (async () => {
+        adminUser = await requireAuth();
+        if (!adminUser?.is_admin) {
+            window.location.href = "/pages/trips.html";
+            return;
+        }
+        loadUsers();
+    })();
+</script>
+</body>
+</html>
