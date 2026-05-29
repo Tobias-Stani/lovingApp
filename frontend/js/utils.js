@@ -74,7 +74,6 @@ function renderNavbar(user) {
     document.getElementById("btn-logout-mobile").addEventListener("click", logout);
 
     const hamburger = document.getElementById("btn-hamburger");
-    const mobileMenu = document.getElementById("navbar-mobile-menu");
     hamburger.addEventListener("click", () => {
         const open = mobileMenu.classList.toggle("open");
         hamburger.setAttribute("aria-expanded", open);
