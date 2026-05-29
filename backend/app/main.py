@@ -1,11 +1,22 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 from app.core.database import Base, engine
 from app.models import User, Trip
 from app.routers import auth, profile, trips, admin, places, couple
 
 Base.metadata.create_all(bind=engine)
+
+def _migrate_db():
+    """Add missing columns for existing databases."""
+    inspector = inspect(engine)
+    columns = [c["name"] for c in inspector.get_columns("trips")]
+    if "deleted_at" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE trips ADD COLUMN deleted_at DATETIME"))
+
+_migrate_db()
 
 app = FastAPI(title="LovingApp API", version="1.0.0")
 

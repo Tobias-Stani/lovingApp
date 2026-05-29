@@ -10,6 +10,11 @@ class TripCreate(BaseModel):
     return_date: Optional[date] = None
     description: Optional[str] = None
     cover_emoji: Optional[str] = "✈️"
+    accommodation_name: Optional[str] = None
+    accommodation_maps_url: Optional[str] = None
+    accommodation_checkin: Optional[date] = None
+    accommodation_checkout: Optional[date] = None
+    accommodation_notes: Optional[str] = None
 
 
 class TripUpdate(BaseModel):
@@ -19,6 +24,11 @@ class TripUpdate(BaseModel):
     return_date: Optional[date] = None
     description: Optional[str] = None
     cover_emoji: Optional[str] = None
+    accommodation_name: Optional[str] = None
+    accommodation_maps_url: Optional[str] = None
+    accommodation_checkin: Optional[date] = None
+    accommodation_checkout: Optional[date] = None
+    accommodation_notes: Optional[str] = None
 
 
 class TripOut(BaseModel):
@@ -31,6 +41,11 @@ class TripOut(BaseModel):
     cover_emoji: Optional[str]
     owner_id: int
     created_at: datetime
+    accommodation_name: Optional[str] = None
+    accommodation_maps_url: Optional[str] = None
+    accommodation_checkin: Optional[date] = None
+    accommodation_checkout: Optional[date] = None
+    accommodation_notes: Optional[str] = None
 
     class Config:
         from_attributes = True

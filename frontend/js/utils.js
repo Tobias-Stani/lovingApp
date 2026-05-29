@@ -103,3 +103,70 @@ function initials(name) {
     if (!name) return "?";
     return name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
 }
+
+function confirmModal(message) {
+    return new Promise((resolve) => {
+        const existing = document.getElementById("confirm-overlay");
+        if (existing) existing.remove();
+
+        const overlay = document.createElement("div");
+        overlay.id = "confirm-overlay";
+        overlay.innerHTML = `
+            <div class="confirm-box">
+                <div class="confirm-icon">💔</div>
+                <p class="confirm-msg">${message}</p>
+                <div class="confirm-actions">
+                    <button class="btn btn-ghost" id="confirm-cancel">Cancelar</button>
+                    <button class="btn btn-primary" id="confirm-ok">Eliminar</button>
+                </div>
+            </div>`;
+
+        Object.assign(overlay.style, {
+            position: "fixed", inset: "0", zIndex: "9999",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(0,0,0,.45)", backdropFilter: "blur(3px)",
+            animation: "fadeIn .2s ease",
+        });
+
+        const box = overlay.querySelector(".confirm-box");
+        Object.assign(box.style, {
+            background: "#fff", borderRadius: "16px", padding: "2rem",
+            maxWidth: "360px", width: "90%", textAlign: "center",
+            boxShadow: "0 20px 60px rgba(0,0,0,.2)",
+            animation: "scaleIn .2s ease",
+        });
+
+        const icon = overlay.querySelector(".confirm-icon");
+        icon.style.cssText = "font-size:2.5rem;margin-bottom:.75rem;";
+
+        const msg = overlay.querySelector(".confirm-msg");
+        Object.assign(msg.style, {
+            fontSize: ".95rem", color: "#555", lineHeight: "1.5",
+            margin: "0 0 1.5rem",
+        });
+
+        const actions = overlay.querySelector(".confirm-actions");
+        actions.style.cssText = "display:flex;gap:.75rem;justify-content:center;";
+
+        const cancelBtn = overlay.querySelector("#confirm-cancel");
+        const okBtn = overlay.querySelector("#confirm-ok");
+        okBtn.style.cssText = "background:var(--rose);color:#fff;border:none;padding:.6rem 1.5rem;border-radius:10px;font-weight:600;cursor:pointer;";
+        okBtn.onmouseover = () => okBtn.style.background = "var(--rose-d)";
+        okBtn.onmouseout = () => okBtn.style.background = "var(--rose)";
+
+        function close(result) {
+            overlay.style.animation = "fadeIn .15s ease reverse";
+            box.style.animation = "scaleIn .15s ease reverse";
+            setTimeout(() => { overlay.remove(); resolve(result); }, 120);
+        }
+
+        cancelBtn.onclick = () => close(false);
+        okBtn.onclick = () => close(true);
+        overlay.onclick = (e) => { if (e.target === overlay) close(false); };
+        document.addEventListener("keydown", function handler(e) {
+            if (e.key === "Escape") { close(false); document.removeEventListener("keydown", handler); }
+        });
+
+        document.body.appendChild(overlay);
+    });
+}

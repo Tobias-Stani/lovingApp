@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Viaje — LovingApp</title>
     <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 <nav class="navbar" id="navbar"></nav>
@@ -18,12 +19,16 @@
     <!-- Tabs -->
     <div class="section-tabs" id="tabs" style="display:none;">
         <button class="section-tab active" data-tab="places">Lugares y planes</button>
+        <button class="section-tab" data-tab="map">Mapa</button>
         <button class="section-tab" data-tab="info">Información</button>
     </div>
 
     <!-- Tab: Lugares -->
     <div id="tab-places">
         <div id="alert-container" style="margin-bottom:1rem;"></div>
+
+        <!-- Hospedaje -->
+        <div id="accommodation-section" style="display:none;"></div>
 
         <!-- Formulario agregar lugar -->
         <div class="add-place-form" id="add-form" style="display:none;">
@@ -88,10 +93,20 @@
             <div id="trip-info-content"></div>
         </div>
     </div>
+
+    <!-- Tab: Mapa -->
+    <div id="tab-map" style="display:none;">
+        <div id="map-loading" style="text-align:center;padding:2rem;">
+            <div class="spinner"></div>
+            <p style="margin-top:1rem;font-size:.875rem;color:var(--text-3);">Cargando mapa...</p>
+        </div>
+        <div id="trip-map" style="height:420px;border-radius:var(--radius-lg);border:1px solid var(--border);overflow:hidden;z-index:1;display:none;"></div>
+    </div>
 </div>
 
 <script src="/js/api.js"></script>
 <script src="/js/utils.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const TRIP_ID = parseInt(params.get("id"));
@@ -125,9 +140,9 @@ function renderHero(trip) {
     if (daysLeft > 0) {
         countdownHtml = `
             <div class="trip-detail-countdown">
-                <div>
-                    <div style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.25rem;">Tiempo restante</div>
-                    <div style="display:flex;align-items:baseline;gap:.375rem;">
+                <div class="trip-detail-countdown-inner">
+                    <div style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;">Tiempo restante</div>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;">
                         <span class="trip-detail-countdown-num">${daysLeft}</span>
                         <span class="trip-detail-countdown-unit">días</span>
                     </div>
@@ -147,7 +162,13 @@ function renderHero(trip) {
                     <div class="trip-detail-title">${trip.destination}</div>
                     <div class="trip-detail-subtitle">${trip.country || ""}</div>
                 </div>
-                <a href="/pages/trip-form.html?id=${trip.id}" class="btn btn-secondary btn-sm">Editar viaje</a>
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.destination + (trip.country ? ', ' + trip.country : ''))}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/></svg>
+                        Ver en Maps
+                    </a>
+                    <a href="/pages/trip-form.html?id=${trip.id}" class="btn btn-secondary btn-sm">Editar viaje</a>
+                </div>
             </div>
             <div class="trip-detail-meta">
                 <div class="trip-meta-item">
@@ -187,6 +208,48 @@ function startDetailTimer(depDate) {
         const s = String(Math.floor(diff / 1000) % 60).padStart(2,"0");
         el.textContent = `${h}:${m}:${s}`;
     }, 1000);
+}
+
+// ── Hospedaje ────────────────────────────────
+function renderAccommodation(trip) {
+    const section = document.getElementById("accommodation-section");
+    const a = trip.accommodation_name || trip.accommodation_maps_url;
+    if (!a) { section.style.display = "none"; return; }
+
+    const dates = [];
+    if (trip.accommodation_checkin) dates.push("Check-in: " + formatDate(trip.accommodation_checkin));
+    if (trip.accommodation_checkout) dates.push("Check-out: " + formatDate(trip.accommodation_checkout));
+
+    const mapsLink = trip.accommodation_maps_url
+        ? `<a href="${trip.accommodation_maps_url}" target="_blank" rel="noopener" class="place-map-link">
+               <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:13px;height:13px;"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/></svg>
+               Ver en Google Maps
+           </a>`
+        : "";
+
+    let mapEmbed = "";
+    if (trip.accommodation_maps_url) {
+        const coords = extractCoords(trip.accommodation_maps_url);
+        if (coords) {
+            const [lat, lon] = coords;
+            const bbox = `${lon - .015},${lat - .015},${lon + .015},${lat + .015}`;
+            mapEmbed = `<iframe class="accommodation-map" src="https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}" allowfullscreen loading="lazy"></iframe>`;
+        }
+    }
+
+    section.innerHTML = `
+        <div class="accommodation-card">
+            <div class="accommodation-header">
+                <span>🏨</span>
+                <span>Hospedaje</span>
+            </div>
+            <div class="accommodation-name">${trip.accommodation_name}</div>
+            ${dates.length ? `<div class="accommodation-dates">${dates.join(" — ")}</div>` : ""}
+            ${trip.accommodation_notes ? `<div class="accommodation-notes">${trip.accommodation_notes}</div>` : ""}
+            ${mapsLink}
+            ${mapEmbed}
+        </div>`;
+    section.style.display = "";
 }
 
 // ── Info tab ──────────────────────────────────
@@ -347,14 +410,100 @@ document.getElementById("type-selector").addEventListener("click", (e) => {
 document.getElementById("btn-add-place").addEventListener("click", showAddForm);
 document.getElementById("btn-cancel-place").addEventListener("click", hideAddForm);
 
+// ── Mapa ──────────────────────────────────────
+let leafletMap = null;
+
+function extractCoords(url) {
+    if (!url) return null;
+    const m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (m) return [parseFloat(m[1]), parseFloat(m[2])];
+    return null;
+}
+
+async function geocode(query) {
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+        const data = await res.json();
+        if (data.length) return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+    } catch {}
+    return null;
+}
+
+async function loadMap() {
+    const container = document.getElementById("trip-map");
+    const loading   = document.getElementById("map-loading");
+    if (leafletMap) { leafletMap.invalidateSize(); return; }
+
+    const places = await api.getPlaces(TRIP_ID);
+
+    const markers = [];
+    for (const p of places) {
+        const coords = extractCoords(p.maps_url);
+        if (coords) markers.push({ coords, place: p });
+    }
+
+    let accomCoords = null;
+    if (currentTrip.accommodation_maps_url) {
+        accomCoords = extractCoords(currentTrip.accommodation_maps_url);
+    }
+
+    let center = null;
+    if (accomCoords) {
+        center = accomCoords;
+    } else if (markers.length) {
+        const avg = (k) => markers.reduce((s, m) => s + m.coords[k], 0) / markers.length;
+        center = [avg(0), avg(1)];
+    } else {
+        center = await geocode(currentTrip.destination + (currentTrip.country ? ", " + currentTrip.country : ""));
+    }
+    if (!center) { loading.innerHTML = '<p style="color:var(--text-3);padding:1rem;">No se pudo cargar el mapa</p>'; return; }
+
+    loading.style.display = "none";
+    container.style.display = "";
+    leafletMap = L.map("trip-map", { zoomControl: true }).setView(center, 13);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+    }).addTo(leafletMap);
+
+    if (accomCoords) {
+        const icon = L.divIcon({
+            html: '<span style="font-size:1.5rem;">🏨</span>',
+            className: "",
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+        });
+        L.marker(accomCoords, { icon }).addTo(leafletMap)
+            .bindPopup(`<b>${currentTrip.accommodation_name || "Hospedaje"}</b><br><span style="color:var(--text-3);">Alojamiento</span>`)
+            .openPopup();
+    }
+
+    markers.forEach(({ coords, place }) => {
+        const cfg = TYPE_CONFIG[place.type] || TYPE_CONFIG.other;
+        L.marker(coords).addTo(leafletMap)
+            .bindPopup(`<b>${place.name}</b><br><span style="color:var(--text-3);">${cfg.label}</span>`);
+    });
+}
+
+function destroyMap() {
+    if (leafletMap) { leafletMap.remove(); leafletMap = null; }
+}
+
 // ── Tabs ──────────────────────────────────────
 document.querySelectorAll(".section-tab").forEach(tab => {
-    tab.addEventListener("click", () => {
+    tab.addEventListener("click", async () => {
         document.querySelectorAll(".section-tab").forEach(t => t.classList.remove("active"));
         tab.classList.add("active");
         const target = tab.dataset.tab;
         document.getElementById("tab-places").style.display = target === "places" ? "" : "none";
+        document.getElementById("tab-map").style.display    = target === "map"    ? "" : "none";
         document.getElementById("tab-info").style.display   = target === "info"   ? "" : "none";
+        if (target === "map") {
+            await loadMap();
+        } else {
+            destroyMap();
+        }
     });
 });
 
@@ -367,6 +516,7 @@ document.querySelectorAll(".section-tab").forEach(tab => {
         currentTrip = await api.getTrip(TRIP_ID);
         document.title = `${currentTrip.destination} — LovingApp`;
         renderHero(currentTrip);
+        renderAccommodation(currentTrip);
         renderInfo(currentTrip);
         document.getElementById("tabs").style.display = "";
         loadPlaces();

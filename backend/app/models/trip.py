@@ -17,5 +17,13 @@ class Trip(Base):
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    accommodation_name      = Column(String(200), nullable=True)
+    accommodation_maps_url  = Column(Text, nullable=True)
+    accommodation_checkin   = Column(Date, nullable=True)
+    accommodation_checkout  = Column(Date, nullable=True)
+    accommodation_notes     = Column(Text, nullable=True)
+
+    deleted_at = Column(DateTime(timezone=True), nullable=True, default=None)
+
     owner  = relationship("User", back_populates="trips")
     places = relationship("Place", back_populates="trip", cascade="all, delete-orphan", order_by="Place.created_at")

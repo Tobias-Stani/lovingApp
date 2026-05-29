@@ -55,7 +55,40 @@
             <div class="form-group">
                 <label class="form-label" for="description">Descripción</label>
                 <textarea class="form-input" id="description"
-                          placeholder="Planes, actividades, hoteles, notas..."></textarea>
+                          placeholder="Planes, actividades, notas..."></textarea>
+            </div>
+
+            <div class="divider"></div>
+
+            <div style="font-size:1rem;font-weight:700;color:var(--rose-d);margin-bottom:.25rem;">🏨 Hospedaje</div>
+            <p style="font-size:.8rem;color:var(--text-3);margin-bottom:1rem;">Dónde se van a quedar</p>
+
+            <div class="form-grid form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Nombre del alojamiento</label>
+                    <input class="form-input" type="text" id="accommodation_name"
+                           placeholder="Hotel Roma, Airbnb Centro..." />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Link de Google Maps</label>
+                    <input class="form-input" type="url" id="accommodation_maps_url"
+                           placeholder="https://maps.google.com/..." />
+                </div>
+            </div>
+            <div class="form-grid form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Check-in</label>
+                    <input class="form-input" type="date" id="accommodation_checkin" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Check-out</label>
+                    <input class="form-input" type="date" id="accommodation_checkout" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notas del hospedaje</label>
+                <textarea class="form-input" id="accommodation_notes" rows="2"
+                          placeholder="Código de puerta, indicaciones, contacto..."></textarea>
             </div>
 
             <div class="divider"></div>
@@ -100,6 +133,11 @@
         document.getElementById("departure_date").value = trip.departure_date || "";
         document.getElementById("return_date").value   = trip.return_date || "";
         document.getElementById("description").value   = trip.description || "";
+        document.getElementById("accommodation_name").value    = trip.accommodation_name || "";
+        document.getElementById("accommodation_maps_url").value = trip.accommodation_maps_url || "";
+        document.getElementById("accommodation_checkin").value  = trip.accommodation_checkin || "";
+        document.getElementById("accommodation_checkout").value = trip.accommodation_checkout || "";
+        document.getElementById("accommodation_notes").value    = trip.accommodation_notes || "";
         buildEmojiPicker(trip.cover_emoji || "✈️");
         document.getElementById("page-title").textContent    = "Editar viaje";
         document.getElementById("page-subtitle").textContent = "Modificá los datos del viaje";
@@ -117,6 +155,11 @@
             return_date:    document.getElementById("return_date").value || null,
             description:    document.getElementById("description").value.trim() || null,
             cover_emoji:    document.getElementById("cover_emoji").value,
+            accommodation_name:    document.getElementById("accommodation_name").value.trim() || null,
+            accommodation_maps_url: document.getElementById("accommodation_maps_url").value.trim() || null,
+            accommodation_checkin:  document.getElementById("accommodation_checkin").value || null,
+            accommodation_checkout: document.getElementById("accommodation_checkout").value || null,
+            accommodation_notes:    document.getElementById("accommodation_notes").value.trim() || null,
         };
         try {
             tripId ? await api.updateTrip(tripId, body) : await api.createTrip(body);

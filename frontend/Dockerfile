@@ -1,5 +1,7 @@
 FROM nginx:alpine
 
+ENV NGINX_ENVSUBST_VARS='$PORT'
+
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY pages/ /usr/share/nginx/html/pages/
 COPY js/ /usr/share/nginx/html/js/

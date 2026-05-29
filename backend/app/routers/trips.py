@@ -7,6 +7,7 @@ from app.routers.deps import get_current_user
 from app.models.user import User
 from app.models.trip import Trip
 from app.models.couple import Couple
+from sqlalchemy.sql import func
 from app.schemas.trip import TripCreate, TripUpdate
 
 router = APIRouter(prefix="/api/trips", tags=["trips"])
@@ -30,16 +31,21 @@ def trip_to_dict(trip: Trip) -> dict:
     today = date.today()
     days_left = (trip.departure_date - today).days
     return {
-        "id":             trip.id,
-        "destination":    trip.destination,
-        "country":        trip.country,
-        "departure_date": trip.departure_date.isoformat(),
-        "return_date":    trip.return_date.isoformat() if trip.return_date else None,
-        "description":    trip.description,
-        "cover_emoji":    trip.cover_emoji,
-        "owner_id":       trip.owner_id,
-        "created_at":     trip.created_at.isoformat(),
-        "days_left":      days_left,
+        "id":                    trip.id,
+        "destination":           trip.destination,
+        "country":               trip.country,
+        "departure_date":        trip.departure_date.isoformat(),
+        "return_date":           trip.return_date.isoformat() if trip.return_date else None,
+        "description":           trip.description,
+        "cover_emoji":           trip.cover_emoji,
+        "owner_id":              trip.owner_id,
+        "created_at":            trip.created_at.isoformat(),
+        "days_left":             days_left,
+        "accommodation_name":    trip.accommodation_name,
+        "accommodation_maps_url": trip.accommodation_maps_url,
+        "accommodation_checkin":  trip.accommodation_checkin.isoformat() if trip.accommodation_checkin else None,
+        "accommodation_checkout": trip.accommodation_checkout.isoformat() if trip.accommodation_checkout else None,
+        "accommodation_notes":   trip.accommodation_notes,
     }
 
 
@@ -49,7 +55,7 @@ def list_trips(db: Session = Depends(get_db), current_user: User = Depends(get_c
     owner_ids  = [current_user.id] + ([partner_id] if partner_id else [])
     trips = (
         db.query(Trip)
-        .filter(Trip.owner_id.in_(owner_ids))
+        .filter(Trip.owner_id.in_(owner_ids), Trip.deleted_at.is_(None))
         .order_by(Trip.departure_date)
         .all()
     )
@@ -77,7 +83,7 @@ def get_trip(
 ):
     partner_id = _partner_id(current_user.id, db)
     owner_ids  = [current_user.id] + ([partner_id] if partner_id else [])
-    trip = db.query(Trip).filter(Trip.id == trip_id, Trip.owner_id.in_(owner_ids)).first()
+    trip = db.query(Trip).filter(Trip.id == trip_id, Trip.owner_id.in_(owner_ids), Trip.deleted_at.is_(None)).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
     return trip_to_dict(trip)
@@ -102,7 +108,7 @@ def update_trip(
     return trip_to_dict(trip)
 
 
-@router.delete("/{trip_id}", status_code=204)
+@router.delete("/{trip_id}", status_code=200)
 def delete_trip(
     trip_id: int,
     db: Session = Depends(get_db),
@@ -113,5 +119,6 @@ def delete_trip(
     trip = db.query(Trip).filter(Trip.id == trip_id, Trip.owner_id.in_(owner_ids)).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
-    db.delete(trip)
+    trip.deleted_at = func.now()
     db.commit()
+    return {"detail": "Viaje eliminado"}
