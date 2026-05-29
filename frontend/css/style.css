@@ -463,7 +463,7 @@ tbody tr:hover td { background: var(--rose-bg); }
 .navbar-mobile-menu {
     display: none;
     position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
-    z-index: 99;
+    z-index: 200;
     background: rgba(255,255,255,.97);
     backdrop-filter: blur(12px);
     padding: 1rem 1.25rem;
