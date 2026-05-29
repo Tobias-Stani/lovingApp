@@ -199,12 +199,6 @@ textarea.form-input { resize: vertical; min-height: 80px; line-height: 1.5; }
 .login-heading { font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; margin-bottom: 0.375rem; }
 .login-sub { font-size: 0.875rem; color: var(--text-2); margin-bottom: 2rem; }
 
-@media (max-width: 640px) {
-    .login-page { grid-template-columns: 1fr; }
-    .login-left { display: none; }
-    .login-right { padding: 2.5rem 1.5rem; align-items: flex-start; padding-top: 3.5rem; }
-}
-
 /* ─── Trips grid ─────────────────────────────────────────── */
 .trips-grid {
     display: grid;
@@ -454,3 +448,86 @@ tbody tr:hover td { background: var(--rose-bg); }
 }
 .section-tab:hover  { color: var(--text-1); }
 .section-tab.active { color: var(--rose-d); border-bottom-color: var(--rose); font-weight: 600; }
+
+/* ─── Hamburger / Mobile nav ─────────────────────────────── */
+.nav-hamburger {
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 0.4rem; background: none; border: none; cursor: pointer;
+    color: var(--text-2); border-radius: var(--radius);
+    transition: background .15s, color .15s;
+}
+.nav-hamburger:hover { background: var(--bg-2); color: var(--text-1); }
+.nav-hamburger svg { width: 22px; height: 22px; display: block; }
+
+.navbar-mobile-menu {
+    display: none;
+    position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
+    z-index: 99;
+    background: rgba(255,255,255,.97);
+    backdrop-filter: blur(12px);
+    padding: 1rem 1.25rem;
+    flex-direction: column; gap: 0.25rem;
+    border-top: 1px solid var(--border);
+    overflow-y: auto;
+}
+.navbar-mobile-menu.open { display: flex; }
+.navbar-mobile-menu .nav-link {
+    font-size: 1rem; padding: 0.875rem 1rem;
+    border-radius: var(--radius);
+}
+.navbar-mobile-menu .btn-nav-logout {
+    font-size: 1rem; padding: 0.875rem 1rem;
+    text-align: left; width: 100%;
+}
+.navbar-mobile-menu .nav-divider { width: 100%; height: 1px; margin: 0.25rem 0; }
+
+/* ─── Responsive — 768px ─────────────────────────────────── */
+@media (max-width: 768px) {
+    .login-page { grid-template-columns: 1fr; }
+    .login-left { display: none; }
+    .login-right { padding: 2.5rem 1.5rem; align-items: flex-start; padding-top: 3.5rem; }
+}
+
+/* ─── Responsive — 640px ─────────────────────────────────── */
+@media (max-width: 640px) {
+    /* Navbar */
+    .nav-hamburger { display: flex; }
+    .navbar-links  { display: none; }
+
+    /* Layout */
+    .container, .container-sm, .container-md { padding: 1.5rem 1rem; }
+
+    /* Section header */
+    .section-header { flex-wrap: wrap; gap: 0.75rem; align-items: flex-start; }
+
+    /* Surface */
+    .surface-p { padding: 1.25rem; }
+    .panel     { padding: 1.125rem; }
+
+    /* Typography */
+    .page-title { font-size: 1.25rem; }
+    .trip-detail-title { font-size: 1.5rem; }
+
+    /* Forms */
+    .form-grid-2 { grid-template-columns: 1fr; }
+    .form-actions { flex-wrap: wrap; }
+
+    /* Buttons — minimum touch targets */
+    .btn-sm   { padding: 0.55rem 0.9rem; min-height: 38px; }
+    .btn-icon { padding: 0.55rem; min-height: 38px; min-width: 38px; }
+
+    /* Trips grid — single column on phones */
+    .trips-grid { grid-template-columns: 1fr; }
+
+    /* Trip detail */
+    .trip-detail-countdown { flex-wrap: wrap; gap: 0.75rem; }
+    .trip-detail-countdown-num { font-size: 2.25rem; }
+    .trip-detail-hero { padding: 1.5rem 1.25rem 1.25rem; }
+
+    /* Place card */
+    .place-card { flex-wrap: wrap; }
+
+    /* Table — ensure min-width so columns don't collapse */
+    table { min-width: 480px; }
+}

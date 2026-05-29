@@ -31,21 +31,50 @@ function renderNavbar(user) {
     const nav = document.getElementById("navbar");
     if (!nav || !user) return;
     const current = window.location.pathname;
+    const adminLink = user.is_admin ? `<a href="/pages/admin.html" class="nav-link ${current.includes('admin') ? 'active' : ''}">Admin</a>` : "";
     nav.innerHTML = `
         <div class="navbar-inner">
             <a href="/pages/trips.html" class="navbar-brand">Loving<span>App</span></a>
             <div class="navbar-links">
                 <a href="/pages/trips.html" class="nav-link ${current.includes('trips') ? 'active' : ''}">Viajes</a>
                 <a href="/pages/profile.html" class="nav-link ${current.includes('profile') ? 'active' : ''}">Perfil</a>
-                ${user.is_admin ? `<a href="/pages/admin.html" class="nav-link ${current.includes('admin') ? 'active' : ''}">Admin</a>` : ""}
+                ${adminLink}
                 <div class="nav-divider"></div>
                 <button class="btn-nav-logout" id="btn-logout">Salir</button>
             </div>
+            <button class="nav-hamburger" id="btn-hamburger" aria-label="Menu" aria-expanded="false">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+            </button>
+        </div>
+        <div class="navbar-mobile-menu" id="navbar-mobile-menu" aria-hidden="true">
+            <a href="/pages/trips.html" class="nav-link ${current.includes('trips') ? 'active' : ''}">Viajes</a>
+            <a href="/pages/profile.html" class="nav-link ${current.includes('profile') ? 'active' : ''}">Perfil</a>
+            ${adminLink}
+            <div class="nav-divider"></div>
+            <button class="btn-nav-logout" id="btn-logout-mobile">Salir</button>
         </div>
     `;
-    document.getElementById("btn-logout").addEventListener("click", async () => {
+
+    const logout = async () => {
         await api.logout();
         window.location.href = "/pages/login.html";
+    };
+    document.getElementById("btn-logout").addEventListener("click", logout);
+    document.getElementById("btn-logout-mobile").addEventListener("click", logout);
+
+    const hamburger = document.getElementById("btn-hamburger");
+    const mobileMenu = document.getElementById("navbar-mobile-menu");
+    hamburger.addEventListener("click", () => {
+        const open = mobileMenu.classList.toggle("open");
+        hamburger.setAttribute("aria-expanded", open);
+        mobileMenu.setAttribute("aria-hidden", !open);
+    });
+    mobileMenu.querySelectorAll(".nav-link").forEach(link => {
+        link.addEventListener("click", () => {
+            mobileMenu.classList.remove("open");
+            hamburger.setAttribute("aria-expanded", "false");
+            mobileMenu.setAttribute("aria-hidden", "true");
+        });
     });
 }
 

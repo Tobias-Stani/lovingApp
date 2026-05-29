@@ -6,6 +6,7 @@ Last updated: 2026-05-28
 
 ## Sources scanned
 
+- /home/toby/.agents/skills
 - /home/toby/.config/opencode/skills
 - /home/toby/.claude/skills
 - /home/toby/.copilot/skills
@@ -30,6 +31,7 @@ Last updated: 2026-05-28
 | `judgment-day` | Trigger: judgment day, dual review, adversarial review, juzgar. Run blind dual review, fix confirmed issues, then re-judge. | user | `/home/toby/.config/opencode/skills/judgment-day/SKILL.md` |
 | `skill-creator` | Trigger: new skills, agent instructions, documenting AI usage patterns. Create LLM-first skills with valid frontmatter. | user | `/home/toby/.config/opencode/skills/skill-creator/SKILL.md` |
 | `skill-improver` | Trigger: improve skills, audit skills, refactor skills, skill quality. Audit and upgrade existing LLM-first skills. | user | `/home/toby/.config/opencode/skills/skill-improver/SKILL.md` |
+| `use-railway` | Operate Railway infrastructure: create projects, provision services and databases, manage object storage buckets, deploy code, configure environments and variables, manage domains, troubleshoot failures, check status and metrics, set up Railway agent tooling, and query Railway docs. Use this skill whenever the user mentions Railway, deployments, services, environments, buckets, object storage, build failures, agent setup, MCP, or infrastructure operations, even if they don't say "Railway" explicitly. | user | `/home/toby/.agents/skills/use-railway/SKILL.md` |
 | `work-unit-commits` | Plan commits as reviewable work units. Trigger: implementation, commit splitting, chained PRs, or keeping tests and docs with code. | user | `/home/toby/.config/opencode/skills/work-unit-commits/SKILL.md` |
 
 ## Loading protocol
