@@ -12,7 +12,7 @@ services:
     ports:
       - "5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-loving}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-loving} -d ${POSTGRES_DB:-lovingapp}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -25,10 +25,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-loving}:${POSTGRES_PASSWORD:-lovingpass}@db:5432/${POSTGRES_DB:-lovingapp}
     ports:
       - "8088:8000"
+    command: sh -c "python create_admin.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ./backend:/app
     depends_on:
@@ -41,8 +40,15 @@ services:
       dockerfile: Dockerfile
     container_name: lovingapp_web
     restart: unless-stopped
+    environment:
+      PORT: "3000"
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend/js:/usr/share/nginx/html/js
+      - ./frontend/css:/usr/share/nginx/html/css
+      - ./frontend/pages:/usr/share/nginx/html/pages
+      - ./frontend/index.html:/usr/share/nginx/html/index.html
     depends_on:
       - backend
 

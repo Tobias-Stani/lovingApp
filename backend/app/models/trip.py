@@ -27,3 +27,4 @@ class Trip(Base):
 
     owner  = relationship("User", back_populates="trips")
     places = relationship("Place", back_populates="trip", cascade="all, delete-orphan", order_by="Place.created_at")
+    todos  = relationship("Todo",  back_populates="trip", cascade="all, delete-orphan", order_by="Todo.position")

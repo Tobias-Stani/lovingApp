@@ -37,6 +37,7 @@ function renderNavbar(user) {
             <a href="/pages/trips.html" class="navbar-brand">Loving<span>App</span></a>
             <div class="navbar-links">
                 <a href="/pages/trips.html" class="nav-link ${current.includes('trips') ? 'active' : ''}">Viajes</a>
+                <a href="/pages/todos.html" class="nav-link ${current.includes('todos') ? 'active' : ''}">To-do</a>
                 <a href="/pages/profile.html" class="nav-link ${current.includes('profile') ? 'active' : ''}">Perfil</a>
                 ${adminLink}
                 <div class="nav-divider"></div>
@@ -60,6 +61,7 @@ function renderNavbar(user) {
     mobileMenu.setAttribute("aria-hidden", "true");
     mobileMenu.innerHTML = `
         <a href="/pages/trips.html" class="nav-link ${current.includes('trips') ? 'active' : ''}">Viajes</a>
+        <a href="/pages/todos.html" class="nav-link ${current.includes('todos') ? 'active' : ''}">To-do</a>
         <a href="/pages/profile.html" class="nav-link ${current.includes('profile') ? 'active' : ''}">Perfil</a>
         ${adminLink}
         <div class="nav-divider"></div>

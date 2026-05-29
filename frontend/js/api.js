@@ -39,4 +39,14 @@ const api = {
     createPlace:    (tripId, body)  => apiFetch(`/api/trips/${tripId}/places/`,           { method: "POST",   body: JSON.stringify(body) }),
     updatePlace:    (tripId, plId, body) => apiFetch(`/api/trips/${tripId}/places/${plId}`, { method: "PUT",    body: JSON.stringify(body) }),
     deletePlace:    (tripId, plId)  => apiFetch(`/api/trips/${tripId}/places/${plId}`,    { method: "DELETE" }),
+    // Todos (por viaje)
+    getTodos:       (tripId)               => apiFetch(`/api/trips/${tripId}/todos/`),
+    createTodo:     (tripId, body)         => apiFetch(`/api/trips/${tripId}/todos/`,              { method: "POST",   body: JSON.stringify(body) }),
+    updateTodo:     (tripId, todoId, body) => apiFetch(`/api/trips/${tripId}/todos/${todoId}`,     { method: "PUT",    body: JSON.stringify(body) }),
+    deleteTodo:     (tripId, todoId)       => apiFetch(`/api/trips/${tripId}/todos/${todoId}`,     { method: "DELETE" }),
+    // Todos globales
+    getGlobalTodos:    ()           => apiFetch("/api/todos/"),
+    createGlobalTodo:  (body)       => apiFetch("/api/todos/",          { method: "POST",   body: JSON.stringify(body) }),
+    updateGlobalTodo:  (id, body)   => apiFetch(`/api/todos/${id}`,     { method: "PUT",    body: JSON.stringify(body) }),
+    deleteGlobalTodo:  (id)         => apiFetch(`/api/todos/${id}`,     { method: "DELETE" }),
 };

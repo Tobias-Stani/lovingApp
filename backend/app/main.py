@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
 from app.core.database import Base, engine
 from app.models import User, Trip
-from app.routers import auth, profile, trips, admin, places, couple
+from app.routers import auth, profile, trips, admin, places, couple, todos, global_todos
 
 Base.metadata.create_all(bind=engine)
 
@@ -14,7 +14,7 @@ def _migrate_db():
     columns = [c["name"] for c in inspector.get_columns("trips")]
     if "deleted_at" not in columns:
         with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE trips ADD COLUMN deleted_at DATETIME"))
+            conn.execute(text("ALTER TABLE trips ADD COLUMN deleted_at TIMESTAMP"))
 
 _migrate_db()
 
@@ -37,6 +37,8 @@ app.include_router(trips.router)
 app.include_router(admin.router)
 app.include_router(places.router)
 app.include_router(couple.router)
+app.include_router(todos.router)
+app.include_router(global_todos.router)
 
 
 @app.get("/api/health")

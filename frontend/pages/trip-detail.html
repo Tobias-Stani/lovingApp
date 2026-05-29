@@ -6,6 +6,101 @@
     <title>Viaje — LovingApp</title>
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        .todo-paper {
+            position: relative;
+            background: #fefdf8;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 2px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.06);
+            padding: 1rem 1.5rem 1.5rem 3.5rem;
+            min-height: 420px;
+            background-image: linear-gradient(transparent calc(2.6rem - 1px), #e2e8f0 calc(2.6rem - 1px), #e2e8f0 2.6rem, transparent 2.6rem);
+            background-size: 100% 2.6rem;
+            background-position: 0 1.8rem;
+        }
+        .todo-margin-line {
+            position: absolute;
+            left: 2.75rem;
+            top: 0; bottom: 0;
+            width: 1.5px;
+            background: rgba(251,113,133,.35);
+            border-radius: 1px;
+        }
+        .todo-item {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            height: 2.6rem;
+            padding: 0 .25rem;
+        }
+        .todo-item:hover .todo-delete { opacity: 1; }
+        .todo-check {
+            width: 1.15rem;
+            height: 1.15rem;
+            border-radius: 50%;
+            border: 2px solid var(--rose, #fb7185);
+            background: transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: background .15s, border-color .15s;
+            color: #fff;
+        }
+        .todo-check.done {
+            background: var(--rose, #fb7185);
+            border-color: var(--rose, #fb7185);
+        }
+        .todo-text {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: .9rem;
+            color: var(--text-1, #1e293b);
+            font-family: inherit;
+            line-height: 1;
+            min-width: 0;
+            cursor: text;
+        }
+        .todo-text.done {
+            text-decoration: line-through;
+            color: var(--text-3, #94a3b8);
+        }
+        .todo-delete {
+            opacity: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-3, #94a3b8);
+            padding: .2rem;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            transition: opacity .15s, color .15s;
+            flex-shrink: 0;
+        }
+        .todo-delete:hover { color: var(--rose, #fb7185); }
+        .todo-add-row {
+            height: 2.6rem;
+            display: flex;
+            align-items: center;
+            padding-left: 1.9rem;
+        }
+        .todo-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: .9rem;
+            font-family: inherit;
+            color: var(--text-1, #1e293b);
+            width: 100%;
+        }
+        .todo-input::placeholder { color: var(--text-3, #94a3b8); }
+    </style>
 </head>
 <body>
 <nav class="navbar" id="navbar"></nav>
@@ -19,6 +114,7 @@
     <!-- Tabs -->
     <div class="section-tabs" id="tabs" style="display:none;">
         <button class="section-tab active" data-tab="places">Lugares y planes</button>
+        <button class="section-tab" data-tab="todo">To-do</button>
         <button class="section-tab" data-tab="map">Mapa</button>
         <button class="section-tab" data-tab="info">Información</button>
     </div>
@@ -84,6 +180,17 @@
         <!-- Lista de lugares -->
         <div class="places-grid" id="places-list">
             <div class="spinner"></div>
+        </div>
+    </div>
+
+    <!-- Tab: To-do -->
+    <div id="tab-todo" style="display:none;">
+        <div class="todo-paper">
+            <div class="todo-margin-line"></div>
+            <div id="todo-list"></div>
+            <div class="todo-add-row">
+                <input id="todo-input" class="todo-input" type="text" placeholder="Nueva tarea… (Enter para agregar)" autocomplete="off" />
+            </div>
         </div>
     </div>
 
@@ -227,25 +334,6 @@ function renderAccommodation(trip) {
            </a>`
         : "";
 
-    let mapEmbed = "";
-    if (trip.accommodation_maps_url) {
-        const url = trip.accommodation_maps_url;
-        if (url.includes("output=embed")) {
-            mapEmbed = `<iframe class="accommodation-map" src="${url}" allowfullscreen loading="lazy"></iframe>`;
-        } else if (url.match(/google\.com\/maps|maps\.google/i)) {
-            const sep = url.includes("?") ? "&" : "?";
-            mapEmbed = `<iframe class="accommodation-map" src="${url}${sep}output=embed" allowfullscreen loading="lazy"></iframe>`;
-        }
-    }
-    if (!mapEmbed && (trip.accommodation_maps_url || trip.accommodation_name)) {
-        const q = trip.accommodation_name + ", " + (trip.country || trip.destination);
-        renderAccommodationMap(q).then(html => {
-            const el = document.querySelector("#accommodation-section .accommodation-map");
-            if (el) el.outerHTML = html;
-        });
-        mapEmbed = `<div class="accommodation-map-placeholder"><div class="spinner" style="margin:.5rem auto;"></div></div>`;
-    }
-
     section.innerHTML = `
         <div class="accommodation-card">
             <div class="accommodation-header">
@@ -256,7 +344,6 @@ function renderAccommodation(trip) {
             ${dates.length ? `<div class="accommodation-dates">${dates.join(" — ")}</div>` : ""}
             ${trip.accommodation_notes ? `<div class="accommodation-notes">${trip.accommodation_notes}</div>` : ""}
             ${mapsLink}
-            ${mapEmbed}
         </div>`;
     section.style.display = "";
 }
@@ -438,13 +525,6 @@ async function geocode(query) {
     return null;
 }
 
-async function renderAccommodationMap(query) {
-    const coords = await geocode(query);
-    if (!coords) return "";
-    const [lat, lon] = coords;
-    const bbox = `${lon - .015},${lat - .015},${lon + .015},${lat + .015}`;
-    return `<iframe class="accommodation-map" src="https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}" allowfullscreen loading="lazy"></iframe>`;
-}
 
 async function loadMap() {
     const container = document.getElementById("trip-map");
@@ -514,6 +594,7 @@ document.querySelectorAll(".section-tab").forEach(tab => {
         tab.classList.add("active");
         const target = tab.dataset.tab;
         document.getElementById("tab-places").style.display = target === "places" ? "" : "none";
+        document.getElementById("tab-todo").style.display   = target === "todo"   ? "" : "none";
         document.getElementById("tab-map").style.display    = target === "map"    ? "" : "none";
         document.getElementById("tab-info").style.display   = target === "info"   ? "" : "none";
         if (target === "map") {
@@ -521,7 +602,78 @@ document.querySelectorAll(".section-tab").forEach(tab => {
         } else {
             destroyMap();
         }
+        if (target === "todo") renderTodos();
     });
+});
+
+// ── To-do ────────────────────────────────────
+let _todos = [];
+
+const TODO_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>`;
+const TODO_X     = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
+
+function createTodoRow(t) {
+    const row = document.createElement("div");
+    row.className = "todo-item";
+    row.dataset.id = t.id;
+
+    const check = document.createElement("button");
+    check.className = "todo-check" + (t.done ? " done" : "");
+    check.innerHTML = t.done ? TODO_CHECK : "";
+    check.addEventListener("click", () => {
+        t.done = !t.done;
+        check.classList.toggle("done", t.done);
+        check.innerHTML = t.done ? TODO_CHECK : "";
+        textEl.classList.toggle("done", t.done);
+        api.updateTodo(TRIP_ID, t.id, { done: t.done });
+    });
+
+    const textEl = document.createElement("span");
+    textEl.className = "todo-text" + (t.done ? " done" : "");
+    textEl.contentEditable = "true";
+    textEl.textContent = t.text;
+    textEl.addEventListener("keydown", e => {
+        if (e.key === "Enter")  { e.preventDefault(); textEl.blur(); document.getElementById("todo-input").focus(); }
+        if (e.key === "Escape") { textEl.textContent = t.text; textEl.blur(); }
+    });
+    textEl.addEventListener("blur", () => {
+        const trimmed = textEl.textContent.trim();
+        if (!trimmed) { textEl.textContent = t.text; return; }
+        if (trimmed === t.text) return;
+        t.text = trimmed;
+        api.updateTodo(TRIP_ID, t.id, { text: trimmed });
+    });
+
+    const del = document.createElement("button");
+    del.className = "todo-delete";
+    del.innerHTML = TODO_X;
+    del.addEventListener("click", () => {
+        _todos = _todos.filter(x => x.id !== t.id);
+        row.style.transition = "opacity .15s";
+        row.style.opacity = "0";
+        setTimeout(() => row.remove(), 150);
+        api.deleteTodo(TRIP_ID, t.id);
+    });
+
+    row.append(check, textEl, del);
+    return row;
+}
+
+async function renderTodos() {
+    _todos = await api.getTodos(TRIP_ID);
+    const list = document.getElementById("todo-list");
+    list.innerHTML = "";
+    _todos.forEach(t => list.appendChild(createTodoRow(t)));
+}
+
+document.getElementById("todo-input").addEventListener("keydown", async e => {
+    if (e.key !== "Enter") return;
+    const text = e.target.value.trim();
+    if (!text) return;
+    e.target.value = "";
+    const todo = await api.createTodo(TRIP_ID, { text });
+    _todos.push(todo);
+    document.getElementById("todo-list").appendChild(createTodoRow(todo));
 });
 
 // ── Init ──────────────────────────────────────

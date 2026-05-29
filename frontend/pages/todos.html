@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>To-do — LovingApp</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <style>
+        .todo-page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .todo-page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-1);
+        }
+        .todo-page-subtitle {
+            font-size: .85rem;
+            color: var(--text-3);
+            margin-top: .2rem;
+        }
+        .todo-paper {
+            position: relative;
+            background: #fefdf8;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 2px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.06);
+            padding: 1rem 1.5rem 2rem 3.5rem;
+            min-height: 500px;
+            background-image: linear-gradient(transparent calc(2.6rem - 1px), #e2e8f0 calc(2.6rem - 1px), #e2e8f0 2.6rem, transparent 2.6rem);
+            background-size: 100% 2.6rem;
+            background-position: 0 1.8rem;
+        }
+        .todo-margin-line {
+            position: absolute;
+            left: 2.75rem;
+            top: 0; bottom: 0;
+            width: 1.5px;
+            background: rgba(251,113,133,.35);
+            border-radius: 1px;
+        }
+        .todo-item {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            height: 2.6rem;
+            padding: 0 .25rem;
+        }
+        .todo-item:hover .todo-delete { opacity: 1; }
+        .todo-check {
+            width: 1.15rem;
+            height: 1.15rem;
+            border-radius: 50%;
+            border: 2px solid var(--rose, #fb7185);
+            background: transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: background .15s, border-color .15s;
+            color: #fff;
+        }
+        .todo-check.done {
+            background: var(--rose, #fb7185);
+            border-color: var(--rose, #fb7185);
+        }
+        .todo-text {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: .9rem;
+            color: var(--text-1, #1e293b);
+            font-family: inherit;
+            line-height: 1;
+            min-width: 0;
+            cursor: text;
+        }
+        .todo-text.done {
+            text-decoration: line-through;
+            color: var(--text-3, #94a3b8);
+        }
+        .todo-delete {
+            opacity: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-3, #94a3b8);
+            padding: .2rem;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            transition: opacity .15s, color .15s;
+            flex-shrink: 0;
+        }
+        .todo-delete:hover { color: var(--rose, #fb7185); }
+        .todo-add-row {
+            height: 2.6rem;
+            display: flex;
+            align-items: center;
+            padding-left: 1.9rem;
+        }
+        .todo-add-btn {
+            font-size: .8rem;
+            color: var(--text-3, #94a3b8);
+            cursor: pointer;
+            user-select: none;
+            transition: color .15s;
+        }
+        .todo-add-btn:hover { color: var(--rose, #fb7185); }
+        .todo-stats {
+            font-size: .8rem;
+            color: var(--text-3);
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="container-md">
+    <div class="todo-page-header">
+        <div>
+            <div class="todo-page-title">To-do</div>
+            <div class="todo-page-subtitle" id="todo-stats"></div>
+        </div>
+    </div>
+
+    <div class="todo-paper">
+        <div class="todo-margin-line"></div>
+        <div id="todo-list"></div>
+        <div class="todo-add-row">
+            <span class="todo-add-btn" id="btn-add-todo">+ nueva tarea</span>
+        </div>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+let _todos     = [];
+let _pendingEl = null;
+
+const CHECKMARK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>`;
+const XMARK     = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
+
+function escapeHtml(str) {
+    return (str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function placeCaretAtEnd(el) {
+    const r = document.createRange(), s = window.getSelection();
+    r.selectNodeContents(el); r.collapse(false);
+    s.removeAllRanges(); s.addRange(r);
+}
+
+function updateStats() {
+    const total = _todos.length;
+    const done  = _todos.filter(t => t.done).length;
+    document.getElementById("todo-stats").textContent = total ? `${done} de ${total} completadas` : "";
+}
+
+// ── Crea el elemento DOM de un todo guardado ──
+function createTodoRow(t) {
+    const row = document.createElement("div");
+    row.className = "todo-item";
+    row.dataset.id = t.id;
+
+    const check = document.createElement("button");
+    check.className = "todo-check" + (t.done ? " done" : "");
+    check.innerHTML = t.done ? CHECKMARK : "";
+    check.addEventListener("click", () => toggleTodo(t.id, row, check, textEl));
+
+    const textEl = document.createElement("span");
+    textEl.className = "todo-text" + (t.done ? " done" : "");
+    textEl.contentEditable = "true";
+    textEl.textContent = t.text;
+
+    textEl.addEventListener("keydown", e => {
+        if (e.key === "Enter")  { e.preventDefault(); textEl.blur(); showNewRow(); }
+        if (e.key === "Escape") { textEl.textContent = t.text; textEl.blur(); }
+    });
+    textEl.addEventListener("blur", () => {
+        const trimmed = textEl.textContent.trim();
+        if (!trimmed) { textEl.textContent = t.text; return; }
+        if (trimmed === t.text) return;
+        t.text = trimmed;
+        api.updateGlobalTodo(t.id, { text: trimmed });
+    });
+
+    const del = document.createElement("button");
+    del.className = "todo-delete";
+    del.innerHTML = XMARK;
+    del.addEventListener("click", () => deleteTodo(t.id, row));
+
+    row.append(check, textEl, del);
+    return row;
+}
+
+// ── Carga inicial ─────────────────────────────
+function renderTodoList() {
+    const list = document.getElementById("todo-list");
+    list.innerHTML = "";
+    _todos.forEach(t => list.appendChild(createTodoRow(t)));
+    updateStats();
+}
+
+// ── Toggle: actualiza solo el row afectado ────
+function toggleTodo(todoId, row, checkBtn, textEl) {
+    const todo = _todos.find(t => t.id === todoId);
+    if (!todo) return;
+    todo.done = !todo.done;
+    checkBtn.classList.toggle("done", todo.done);
+    checkBtn.innerHTML = todo.done ? CHECKMARK : "";
+    textEl.classList.toggle("done", todo.done);
+    updateStats();
+    api.updateGlobalTodo(todoId, { done: todo.done });
+}
+
+// ── Eliminar: quita el row sin re-renderizar ──
+function deleteTodo(todoId, row) {
+    _todos = _todos.filter(t => t.id !== todoId);
+    row.style.transition = "opacity .15s";
+    row.style.opacity = "0";
+    setTimeout(() => row.remove(), 150);
+    updateStats();
+    api.deleteGlobalTodo(todoId);
+}
+
+// ── Nueva fila (DOM-only hasta confirmar) ─────
+function showNewRow() {
+    if (_pendingEl) { _pendingEl.querySelector("span").focus(); return; }
+
+    const row = document.createElement("div");
+    row.className = "todo-item";
+
+    const check = document.createElement("button");
+    check.className = "todo-check";
+    check.disabled = true;
+    check.style.cssText = "opacity:.25;cursor:default;";
+
+    const textEl = document.createElement("span");
+    textEl.className = "todo-text";
+    textEl.contentEditable = "true";
+
+    const del = document.createElement("button");
+    del.className = "todo-delete";
+    del.style.opacity = "1";
+    del.innerHTML = XMARK;
+    del.addEventListener("mousedown", e => {
+        e.preventDefault(); // evita que blur dispare antes que click
+        cancelNewRow();
+    });
+
+    row.append(check, textEl, del);
+    document.getElementById("todo-list").appendChild(row);
+    _pendingEl = row;
+    textEl.focus();
+
+    let committed = false;
+    const commit = async () => {
+        if (committed || !_pendingEl) return;
+        committed = true;
+        const text = textEl.textContent.trim();
+        _pendingEl.remove();
+        _pendingEl = null;
+        if (!text) return;
+        const todo = await api.createGlobalTodo({ text });
+        _todos.push(todo);
+        const list = document.getElementById("todo-list");
+        list.appendChild(createTodoRow(todo));
+        updateStats();
+    };
+
+    textEl.addEventListener("keydown", e => {
+        if (e.key === "Enter")  { e.preventDefault(); commit(); }
+        if (e.key === "Escape") { cancelNewRow(); }
+    });
+    textEl.addEventListener("blur", commit);
+}
+
+function cancelNewRow() {
+    if (!_pendingEl) return;
+    _pendingEl.remove();
+    _pendingEl = null;
+}
+
+document.getElementById("btn-add-todo").addEventListener("click", showNewRow);
+
+(async () => {
+    const user = await requireAuth();
+    if (!user) return;
+    _todos = await api.getGlobalTodos();
+    renderTodoList();
+})();
+</script>
+</body>
+</html>

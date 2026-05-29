@@ -16,6 +16,7 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    trips = relationship("Trip", back_populates="owner", cascade="all, delete-orphan")
+    trips        = relationship("Trip", back_populates="owner", cascade="all, delete-orphan")
+    global_todos = relationship("GlobalTodo", back_populates="owner", cascade="all, delete-orphan")
     sent_invitations     = relationship("Couple", foreign_keys="Couple.requester_id", back_populates="requester")
     received_invitations = relationship("Couple", foreign_keys="Couple.receiver_id",  back_populates="receiver")
