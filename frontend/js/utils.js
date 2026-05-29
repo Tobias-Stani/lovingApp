@@ -46,13 +46,24 @@ function renderNavbar(user) {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
             </button>
         </div>
-        <div class="navbar-mobile-menu" id="navbar-mobile-menu" aria-hidden="true">
-            <a href="/pages/trips.html" class="nav-link ${current.includes('trips') ? 'active' : ''}">Viajes</a>
-            <a href="/pages/profile.html" class="nav-link ${current.includes('profile') ? 'active' : ''}">Perfil</a>
-            ${adminLink}
-            <div class="nav-divider"></div>
-            <button class="btn-nav-logout" id="btn-logout-mobile">Salir</button>
-        </div>
+    `;
+
+    // Mobile menu must live outside <nav> — backdrop-filter on nav creates a new
+    // containing block for fixed descendants, which clips the overlay to 56px.
+    let mobileMenu = document.getElementById("navbar-mobile-menu");
+    if (!mobileMenu) {
+        mobileMenu = document.createElement("div");
+        mobileMenu.id = "navbar-mobile-menu";
+        mobileMenu.className = "navbar-mobile-menu";
+        document.body.appendChild(mobileMenu);
+    }
+    mobileMenu.setAttribute("aria-hidden", "true");
+    mobileMenu.innerHTML = `
+        <a href="/pages/trips.html" class="nav-link ${current.includes('trips') ? 'active' : ''}">Viajes</a>
+        <a href="/pages/profile.html" class="nav-link ${current.includes('profile') ? 'active' : ''}">Perfil</a>
+        ${adminLink}
+        <div class="nav-divider"></div>
+        <button class="btn-nav-logout" id="btn-logout-mobile">Salir</button>
     `;
 
     const logout = async () => {
