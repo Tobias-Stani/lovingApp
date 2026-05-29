@@ -1,4 +1,4 @@
-const API = window.BACKEND_URL || "http://localhost:8088";
+const API = "";
 
 async function apiFetch(path, options = {}) {
     const res = await fetch(API + path, {
