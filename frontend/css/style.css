@@ -329,6 +329,11 @@ textarea.form-input { resize: vertical; min-height: 80px; line-height: 1.5; }
     width: 100%; height: 200px; border: none; border-radius: var(--radius);
     margin-top: .75rem;
 }
+.accommodation-map-placeholder {
+    width: 100%; height: 56px; border-radius: var(--radius);
+    background: var(--rose-bg); margin-top: .75rem;
+    display: flex; align-items: center; justify-content: center;
+}
 .place-icon {
     width: 36px; height: 36px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;

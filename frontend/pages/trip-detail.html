@@ -229,17 +229,21 @@ function renderAccommodation(trip) {
 
     let mapEmbed = "";
     if (trip.accommodation_maps_url) {
-        let embedUrl = "";
         const url = trip.accommodation_maps_url;
         if (url.includes("output=embed")) {
-            embedUrl = url;
-        } else if (url.match(/google|maps\./i)) {
+            mapEmbed = `<iframe class="accommodation-map" src="${url}" allowfullscreen loading="lazy"></iframe>`;
+        } else if (url.match(/google\.com\/maps|maps\.google/i)) {
             const sep = url.includes("?") ? "&" : "?";
-            embedUrl = url + sep + "output=embed";
+            mapEmbed = `<iframe class="accommodation-map" src="${url}${sep}output=embed" allowfullscreen loading="lazy"></iframe>`;
         }
-        if (embedUrl) {
-            mapEmbed = `<iframe class="accommodation-map" src="${embedUrl}" allowfullscreen loading="lazy"></iframe>`;
-        }
+    }
+    if (!mapEmbed && (trip.accommodation_maps_url || trip.accommodation_name)) {
+        const q = trip.accommodation_name + ", " + (trip.country || trip.destination);
+        renderAccommodationMap(q).then(html => {
+            const el = document.querySelector("#accommodation-section .accommodation-map");
+            if (el) el.outerHTML = html;
+        });
+        mapEmbed = `<div class="accommodation-map-placeholder"><div class="spinner" style="margin:.5rem auto;"></div></div>`;
     }
 
     section.innerHTML = `
@@ -432,6 +436,14 @@ async function geocode(query) {
         if (data.length) return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
     } catch {}
     return null;
+}
+
+async function renderAccommodationMap(query) {
+    const coords = await geocode(query);
+    if (!coords) return "";
+    const [lat, lon] = coords;
+    const bbox = `${lon - .015},${lat - .015},${lon + .015},${lat + .015}`;
+    return `<iframe class="accommodation-map" src="https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}" allowfullscreen loading="lazy"></iframe>`;
 }
 
 async function loadMap() {
