@@ -211,7 +211,7 @@ function startDetailTimer(depDate) {
 }
 
 // ── Hospedaje ────────────────────────────────
-function renderAccommodation(trip) {
+async function renderAccommodation(trip) {
     const section = document.getElementById("accommodation-section");
     const a = trip.accommodation_name || trip.accommodation_maps_url;
     if (!a) { section.style.display = "none"; return; }
@@ -228,13 +228,18 @@ function renderAccommodation(trip) {
         : "";
 
     let mapEmbed = "";
+    let coords = null;
     if (trip.accommodation_maps_url) {
-        const coords = extractCoords(trip.accommodation_maps_url);
-        if (coords) {
-            const [lat, lon] = coords;
-            const bbox = `${lon - .015},${lat - .015},${lon + .015},${lat + .015}`;
-            mapEmbed = `<iframe class="accommodation-map" src="https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}" allowfullscreen loading="lazy"></iframe>`;
-        }
+        coords = extractCoords(trip.accommodation_maps_url);
+    }
+    if (!coords && trip.accommodation_name) {
+        const q = trip.accommodation_name + ", " + (trip.country || trip.destination);
+        coords = await geocode(q);
+    }
+    if (coords) {
+        const [lat, lon] = coords;
+        const bbox = `${lon - .015},${lat - .015},${lon + .015},${lat + .015}`;
+        mapEmbed = `<iframe class="accommodation-map" src="https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}" allowfullscreen loading="lazy"></iframe>`;
     }
 
     section.innerHTML = `
@@ -516,7 +521,7 @@ document.querySelectorAll(".section-tab").forEach(tab => {
         currentTrip = await api.getTrip(TRIP_ID);
         document.title = `${currentTrip.destination} — LovingApp`;
         renderHero(currentTrip);
-        renderAccommodation(currentTrip);
+        await renderAccommodation(currentTrip);
         renderInfo(currentTrip);
         document.getElementById("tabs").style.display = "";
         loadPlaces();
