@@ -114,6 +114,14 @@
             transition: color .15s;
         }
         .todo-add-btn:hover { color: var(--rose, #fb7185); }
+        .todo-owner-badge {
+            font-size: .75rem;
+            color: var(--text-3);
+            margin: 0 .25rem;
+            flex-shrink: 0;
+            opacity: .6;
+            cursor: default;
+        }
         .todo-stats {
             font-size: .8rem;
             color: var(--text-3);
@@ -143,8 +151,10 @@
 <script src="/js/api.js"></script>
 <script src="/js/utils.js"></script>
 <script>
-let _todos     = [];
-let _pendingEl = null;
+let _todos         = [];
+let _pendingEl     = null;
+let _currentUser   = null;
+let _partnerName   = null;
 
 const CHECKMARK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>`;
 const XMARK     = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
@@ -181,6 +191,8 @@ function createTodoRow(t) {
     textEl.contentEditable = "true";
     textEl.textContent = t.text;
 
+    const isMine = t.owner_id === _currentUser?.id;
+
     textEl.addEventListener("keydown", e => {
         if (e.key === "Enter")  { e.preventDefault(); textEl.blur(); showNewRow(); }
         if (e.key === "Escape") { textEl.textContent = t.text; textEl.blur(); }
@@ -193,12 +205,17 @@ function createTodoRow(t) {
         api.updateGlobalTodo(t.id, { text: trimmed });
     });
 
+    const badge = document.createElement("span");
+    badge.className = "todo-owner-badge";
+    badge.textContent = isMine ? "" : _partnerName ? "👤" : "";
+    badge.title = isMine ? "Tuyo" : _partnerName ? `De ${_partnerName}` : "";
+
     const del = document.createElement("button");
     del.className = "todo-delete";
     del.innerHTML = XMARK;
     del.addEventListener("click", () => deleteTodo(t.id, row));
 
-    row.append(check, textEl, del);
+    row.append(check, textEl, badge, del);
     return row;
 }
 
@@ -295,6 +312,13 @@ document.getElementById("btn-add-todo").addEventListener("click", showNewRow);
 (async () => {
     const user = await requireAuth();
     if (!user) return;
+    _currentUser = user;
+    try {
+        const couple = await api.getCoupleStatus();
+        if (couple.status === "accepted" && couple.partner) {
+            _partnerName = couple.partner.username;
+        }
+    } catch {}
     _todos = await api.getGlobalTodos();
     renderTodoList();
 })();
