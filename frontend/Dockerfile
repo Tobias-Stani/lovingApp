@@ -1,6 +1,6 @@
 FROM nginx:alpine
 
-ENV NGINX_ENVSUBST_VARS='$PORT'
+ENV NGINX_ENVSUBST_VARS='$PORT $BACKEND_URL'
 
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY pages/ /usr/share/nginx/html/pages/
