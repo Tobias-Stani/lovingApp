@@ -44,11 +44,21 @@
             display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
             gap:.5rem;margin-bottom:1rem;
         }
-        .photos-grid img {
+        .photo-item { position:relative;display:inline-block; }
+        .photo-item img {
             width:100%;height:160px;object-fit:cover;border-radius:8px;
-            cursor:pointer;transition:transform .15s;
+            cursor:pointer;transition:transform .15s;display:block;
         }
-        .photos-grid img:hover { transform:scale(1.03); }
+        .photo-item img:hover { transform:scale(1.03); }
+        .photo-del {
+            position:absolute;top:4px;right:4px;width:28px;height:28px;
+            border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;
+            font-size:1.1rem;line-height:1;cursor:pointer;display:flex;
+            align-items:center;justify-content:center;opacity:0;
+            transition:opacity .15s;padding:0;
+        }
+        .photo-item:hover .photo-del { opacity:1; }
+        .photo-del:hover { background:rgba(200,0,0,.8); }
 
         .act-timeline { position:relative;padding-left:2rem; }
         .act-timeline::before {
@@ -195,7 +205,11 @@ function renderDate() {
         <div class="surface-p" style="margin-bottom:1.5rem;">
             <div class="section-title">📷 Fotos <span style="font-weight:400;font-size:.8rem;color:var(--text-3);">(${photos.length})</span></div>
             <div class="photos-grid" id="photos-grid">
-                ${photos.map((p,i) => `<img src="${photoUrl(p.id, true)}" onclick="showLightbox(_currentDate.photos, ${i})" loading="lazy" />`).join("")}
+                ${photos.map((p,i) => `
+                <div class="photo-item">
+                    <img src="${photoUrl(p.id, true)}" onclick="showLightbox(_currentDate.photos, ${i})" loading="lazy" />
+                    <button class="photo-del" onclick="deletePhoto(${p.id}, event)" title="Eliminar foto">&times;</button>
+                </div>`).join("")}
             </div>
             <form id="add-photo-form" class="inline-form" style="margin-top:.5rem;">
                 <input type="file" accept="image/*" multiple required style="flex:1;padding:.4rem;" />
@@ -302,6 +316,12 @@ async function refreshDate() {
 
 function deleteActivity(actId) {
     api.deleteDateActivity(actId).then(refreshDate);
+}
+
+function deletePhoto(photoId, event) {
+    if (event) event.stopPropagation();
+    if (!confirm("¿Eliminar esta foto?")) return;
+    api.deleteDatePhoto(photoId).then(refreshDate);
 }
 
 function showEditForm() {

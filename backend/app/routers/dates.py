@@ -22,7 +22,8 @@ except ImportError:
 
 router = APIRouter(prefix="/api/dates", tags=["dates"])
 
-MAX_IMAGE_SIZE = 10 * 1024 * 1024
+MAX_IMAGE_SIZE = 20 * 1024 * 1024
+MAX_IMAGE_DIM = 2000
 THUMB_WIDTH = 400
 
 
@@ -45,6 +46,22 @@ def _make_thumbnail(data: bytes, mime: str) -> Optional[bytes]:
         return buf.getvalue()
     except Exception:
         return None
+
+
+def _downscale_if_needed(data: bytes, mime: str) -> bytes:
+    if not HAS_PIL:
+        return data
+    try:
+        img = Image.open(io.BytesIO(data))
+        if img.width <= MAX_IMAGE_DIM and img.height <= MAX_IMAGE_DIM:
+            return data
+        img.thumbnail((MAX_IMAGE_DIM, MAX_IMAGE_DIM), Image.LANCZOS)
+        fmt = "JPEG" if mime in ("image/jpeg", "image/jpg") else "PNG"
+        buf = io.BytesIO()
+        img.save(buf, format=fmt, quality=85, optimize=True)
+        return buf.getvalue()
+    except Exception:
+        return data
 
 
 def date_entry_to_dict(d: DateEntry) -> dict:
@@ -139,6 +156,7 @@ def create_date(
         if len(data) > MAX_IMAGE_SIZE:
             continue
         mime = f.content_type or "image/jpeg"
+        data = _downscale_if_needed(data, mime)
         thumb = _make_thumbnail(data, mime)
         photo = DatePhoto(
             date_id=entry.id,
@@ -261,6 +279,7 @@ def add_photos(
         if len(data) > MAX_IMAGE_SIZE:
             continue
         mime = f.content_type or "image/jpeg"
+        data = _downscale_if_needed(data, mime)
         thumb = _make_thumbnail(data, mime)
         photo = DatePhoto(
             date_id=entry.id,
