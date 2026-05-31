@@ -11,7 +11,7 @@
         .back-link:hover { color:var(--rose); }
         .detail-hero {
             width:100%;height:350px;object-fit:cover;border-radius:var(--radius-lg);
-            background:var(--bg-2);display:block;
+            background:var(--bg-2);display:block;cursor:pointer;
         }
         .detail-hero-placeholder {
             width:100%;height:350px;border-radius:var(--radius-lg);
@@ -164,10 +164,24 @@ function formatDateVerbose(iso) {
 function showLightbox(photos, idx) {
     const el = document.createElement("div"); el.className = "lightbox";
     el.onclick = (e) => { if (e.target===el) el.remove(); };
+    let touchStartX = 0;
+    el.addEventListener("touchstart", (e) => { touchStartX = e.touches[0].clientX; }, {passive:true});
+    el.addEventListener("touchend", (e) => {
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(dx) > 60) {
+            const currentIdx = parseInt(el.dataset.idx || "0");
+            const dir = dx > 0 ? -1 : 1;
+            const newIdx = currentIdx + dir;
+            if (newIdx >= 0 && newIdx < photos.length) {
+                renderLightboxContent(el, photos, newIdx);
+            }
+        }
+    }, {passive:true});
     renderLightboxContent(el, photos, idx);
     document.body.appendChild(el);
 }
 function renderLightboxContent(el, photos, idx) {
+    el.dataset.idx = idx;
     el.innerHTML = `
         <button class="lightbox-close" id="lb-close">&times;</button>
         ${idx > 0 ? `<button class="lightbox-nav lightbox-prev" id="lb-prev">‹</button>` : ""}
@@ -179,11 +193,12 @@ function renderLightboxContent(el, photos, idx) {
     const next = document.getElementById("lb-next");
     if (prev) prev.onclick = (e) => { e.stopPropagation(); renderLightboxContent(el, photos, idx-1); };
     if (next) next.onclick = (e) => { e.stopPropagation(); renderLightboxContent(el, photos, idx+1); };
-    document.addEventListener("keydown", function handler(ev) {
+    const handler = (ev) => {
         if (ev.key === "Escape") { el.remove(); document.removeEventListener("keydown", handler); }
         if (ev.key === "ArrowLeft" && prev) { renderLightboxContent(el, photos, idx-1); document.removeEventListener("keydown", handler); }
         if (ev.key === "ArrowRight" && next) { renderLightboxContent(el, photos, idx+1); document.removeEventListener("keydown", handler); }
-    });
+    };
+    document.addEventListener("keydown", handler);
 }
 
 // ── Render ────────────────────────────
@@ -192,7 +207,7 @@ function renderDate() {
     const photos = d.photos || [];
 
     const heroHtml = photos.length
-        ? `<img class="detail-hero" src="${photoUrl(photos[0].id, true)}" alt="${escapeHtml(d.title)}" />`
+        ? `<img class="detail-hero" src="${photoUrl(photos[0].id, true)}" alt="${escapeHtml(d.title)}" onclick="showLightbox(_currentDate.photos, 0)" />`
         : `<div class="detail-hero-placeholder">💕</div>`;
 
     const locHtml = d.location_name
