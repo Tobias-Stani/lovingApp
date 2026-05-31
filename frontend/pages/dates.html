@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dates — LovingApp</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <style>
+        .dates-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .dates-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-1);
+        }
+        .dates-subtitle {
+            font-size: .85rem;
+            color: var(--text-3);
+            margin-top: .2rem;
+        }
+        .timeline {
+            position: relative;
+        }
+        .timeline::before {
+            content: "";
+            position: absolute;
+            left: 24px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--rose), #fcd34d);
+            border-radius: 1px;
+        }
+        .timeline-item {
+            position: relative;
+            padding-left: 60px;
+            margin-bottom: 1.5rem;
+        }
+        .timeline-dot {
+            position: absolute;
+            left: 16px;
+            top: 20px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--rose);
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 2px var(--rose);
+            z-index: 1;
+        }
+        .date-card {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 2px 12px rgba(0,0,0,.07);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s;
+        }
+        .date-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,.12);
+        }
+        .date-card-photo {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+            background: var(--bg-2);
+        }
+        .date-card-photo-placeholder {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #fce4ec, #fff3e0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+        .date-card-body {
+            padding: 1rem 1.25rem;
+        }
+        .date-card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-1);
+            margin-bottom: .3rem;
+        }
+        .date-card-meta {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            font-size: .8rem;
+            color: var(--text-3);
+            flex-wrap: wrap;
+        }
+        .date-card-meta svg {
+            width: 13px;
+            height: 13px;
+            flex-shrink: 0;
+        }
+        .date-card-meta-item {
+            display: flex;
+            align-items: center;
+            gap: .3rem;
+        }
+        .date-card-desc {
+            font-size: .85rem;
+            color: var(--text-2);
+            margin-top: .5rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .date-card-photo-count {
+            font-size: .75rem;
+            color: var(--text-3);
+            margin-top: .4rem;
+            display: flex;
+            align-items: center;
+            gap: .3rem;
+        }
+        .empty-dates {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        .empty-dates-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .empty-dates h2 {
+            font-size: 1.2rem;
+            color: var(--text-2);
+            margin-bottom: .5rem;
+        }
+        .empty-dates p {
+            font-size: .9rem;
+            color: var(--text-3);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,.45);
+            backdrop-filter: blur(3px);
+            animation: fadeIn .2s ease;
+        }
+        .modal-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 520px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,.2);
+            animation: scaleIn .2s ease;
+        }
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-1);
+            margin-bottom: 1.25rem;
+        }
+        .modal-close {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-3);
+            padding: 0 .25rem;
+            line-height: 1;
+        }
+        .modal-close:hover { color: var(--text-1); }
+
+        .form-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="container-md">
+    <div class="dates-header">
+        <div>
+            <div class="dates-title">Recuerdos</div>
+            <div class="dates-subtitle">Los momentos de ustedes dos</div>
+        </div>
+        <button class="btn btn-primary" id="btn-new-date">+ Nuevo recuerdo</button>
+    </div>
+
+    <div class="timeline" id="dates-list">
+        <div class="spinner"></div>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+let _dates = [];
+let _currentUser = null;
+
+function formatDateVerbose(iso) {
+    if (!iso) return "";
+    const [y, m, d] = iso.split("-");
+    const months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+    return `${parseInt(d)} de ${months[parseInt(m)-1]} de ${y}`;
+}
+
+function photoUrl(photoId, thumb = false) {
+    const API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+        ? (window.BACKEND_URL || "https://backend-production-a3b1b.up.railway.app")
+        : "";
+    return API_BASE + `/api/dates/photos/${photoId}/image${thumb ? "?thumbnail=true" : ""}`;
+}
+
+function escapeHtml(str) {
+    return (str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function renderTimeline() {
+    const list = document.getElementById("dates-list");
+    if (!_dates.length) {
+        list.innerHTML = `
+            <div class="empty-dates">
+                <div class="empty-dates-icon">💕</div>
+                <h2>Todavía no hay recuerdos</h2>
+                <p>Agregá los momentos especiales que vivieron juntos: fotos, lugares, planes.</p>
+            </div>`;
+        return;
+    }
+
+    list.innerHTML = _dates.map(d => {
+        const photos = d.photos || [];
+        const photoHtml = photos.length
+            ? `<img class="date-card-photo" src="${photoUrl(photos[0].id, true)}" alt="${escapeHtml(d.title)}" loading="lazy" />`
+            : `<div class="date-card-photo-placeholder">💕</div>`;
+
+        const locHtml = d.location_name
+            ? `<span class="date-card-meta-item">📍 ${escapeHtml(d.location_name)}</span>`
+            : "";
+
+        const photoCount = d.photo_count > 1
+            ? `<div class="date-card-photo-count">📷 ${d.photo_count} fotos</div>`
+            : d.photo_count === 1
+            ? `<div class="date-card-photo-count">📷 1 foto</div>`
+            : "";
+
+        return `
+        <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <a href="/pages/date-detail.html?id=${d.id}" class="date-card" style="text-decoration:none;color:inherit;">
+                ${photoHtml}
+                <div class="date-card-body">
+                    <div class="date-card-title">${escapeHtml(d.title)}</div>
+                    <div class="date-card-meta">
+                        <span class="date-card-meta-item">📅 ${formatDateVerbose(d.date_occurred)}</span>
+                        ${locHtml}
+                    </div>
+                    ${d.description ? `<div class="date-card-desc">${escapeHtml(d.description)}</div>` : ""}
+                    ${photoCount}
+                </div>
+            </a>
+        </div>`;
+    }).join("");
+}
+
+function showCreateForm() {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.innerHTML = `
+        <div class="modal-box">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <div class="modal-title">Nueva fecha</div>
+            <form id="date-form" class="form-stack">
+                <div class="form-group">
+                    <label class="form-label">Título *</label>
+                    <input class="form-input" type="text" id="f-title" required placeholder="Nuestra primera cena...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fecha *</label>
+                    <input class="form-input" type="date" id="f-date" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ubicación</label>
+                    <input class="form-input" type="text" id="f-location" placeholder="Restaurante El Faro, Mar del Plata...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Link de Google Maps</label>
+                    <input class="form-input" type="url" id="f-maps" placeholder="https://maps.google.com/...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Descripción</label>
+                    <textarea class="form-input" id="f-desc" rows="3" placeholder="Qué hicieron, cómo se sintieron..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fotos</label>
+                    <input class="form-input" type="file" id="f-photos" accept="image/*" multiple>
+                </div>
+                <div class="form-actions" style="margin-top:.5rem;">
+                    <button class="btn btn-primary" type="submit">Guardar</button>
+                    <button class="btn btn-ghost" type="button" id="btn-cancel">Cancelar</button>
+                </div>
+            </form>
+        </div>`;
+    document.body.appendChild(overlay);
+
+    document.getElementById("modal-close").onclick = () => overlay.remove();
+    document.getElementById("btn-cancel").onclick = () => overlay.remove();
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    document.getElementById("f-date").valueAsDate = new Date();
+
+    document.getElementById("date-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector("button[type=submit]");
+        btn.disabled = true;
+        btn.textContent = "Guardando...";
+        try {
+            const fd = new FormData();
+            fd.append("title", document.getElementById("f-title").value.trim());
+            fd.append("date_occurred", document.getElementById("f-date").value);
+            const loc = document.getElementById("f-location").value.trim();
+            if (loc) fd.append("location_name", loc);
+            const maps = document.getElementById("f-maps").value.trim();
+            if (maps) fd.append("maps_url", maps);
+            const desc = document.getElementById("f-desc").value.trim();
+            if (desc) fd.append("description", desc);
+            const files = document.getElementById("f-photos").files;
+            for (const f of files) fd.append("photos", f);
+
+            const newDate = await api.createDate(fd);
+            _dates.unshift(newDate);
+            renderTimeline();
+            overlay.remove();
+        } catch (err) {
+            alert("Error: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Guardar";
+        }
+    };
+}
+
+document.getElementById("btn-new-date").addEventListener("click", showCreateForm);
+
+(async () => {
+    const user = await requireAuth();
+    if (!user) return;
+    _currentUser = user;
+    _dates = await api.getDates();
+    renderTimeline();
+})();
+</script>
+</body>
+</html>

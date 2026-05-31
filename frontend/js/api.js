@@ -47,4 +47,17 @@ const api = {
     createGlobalTodo:  (body)       => apiFetch("/api/todos/",          { method: "POST",   body: JSON.stringify(body) }),
     updateGlobalTodo:  (id, body)   => apiFetch(`/api/todos/${id}`,     { method: "PUT",    body: JSON.stringify(body) }),
     deleteGlobalTodo:  (id)         => apiFetch(`/api/todos/${id}`,     { method: "DELETE" }),
+    // Dates
+    getDates:          ()              => apiFetch("/api/dates/"),
+    getDate:           (id)            => apiFetch(`/api/dates/${id}`),
+    createDate:        (formData)      => fetch(API + "/api/dates/", { method: "POST", credentials: "include", body: formData }),
+    updateDate:        (id, formData)  => fetch(API + `/api/dates/${id}`, { method: "PUT", credentials: "include", body: formData }),
+    deleteDate:        (id)            => apiFetch(`/api/dates/${id}`, { method: "DELETE" }),
+    addDatePhotos:     (id, formData)  => fetch(API + `/api/dates/${id}/photos`, { method: "POST", credentials: "include", body: formData }),
+    deleteDatePhoto:   (photoId)       => apiFetch(`/api/dates/photos/${photoId}`, { method: "DELETE" }),
+    // Activity endpoints
+    getDateActivities: (dateId)         => apiFetch(`/api/dates/${dateId}/activities`),
+    createDateActivity:(dateId, formData) => fetch(API + `/api/dates/${dateId}/activities`, { method: "POST", credentials: "include", body: formData }),
+    updateDateActivity:(actId, formData) => fetch(API + `/api/dates/activities/${actId}`, { method: "PUT", credentials: "include", body: formData }),
+    deleteDateActivity:(actId)          => apiFetch(`/api/dates/activities/${actId}`, { method: "DELETE" }),
 };

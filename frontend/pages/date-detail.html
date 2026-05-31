@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Date — LovingApp</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        .back-link { display:inline-block;font-size:.85rem;color:var(--text-3);margin-bottom:1rem;text-decoration:none; }
+        .back-link:hover { color:var(--rose); }
+        .detail-hero {
+            width:100%;height:350px;object-fit:cover;border-radius:var(--radius-lg);
+            background:var(--bg-2);display:block;
+        }
+        .detail-hero-placeholder {
+            width:100%;height:350px;border-radius:var(--radius-lg);
+            background:linear-gradient(135deg,#fce4ec,#fff3e0);
+            display:flex;align-items:center;justify-content:center;font-size:5rem;
+        }
+        .detail-header {
+            display:flex;align-items:flex-start;justify-content:space-between;
+            flex-wrap:wrap;gap:1rem;margin:1.25rem 0 .5rem;
+        }
+        .detail-title { font-size:1.5rem;font-weight:700;color:var(--text-1); }
+        .detail-meta {
+            display:flex;flex-wrap:wrap;gap:1rem;
+            margin-bottom:1rem;font-size:.85rem;color:var(--text-3);
+        }
+        .detail-meta-item { display:flex;align-items:center;gap:.35rem; }
+        .detail-desc {
+            font-size:.9rem;line-height:1.6;color:var(--text-2);
+            margin-bottom:1.5rem;padding:1rem 1.25rem;
+            background:#fff;border-radius:var(--radius-lg);box-shadow:0 1px 8px rgba(0,0,0,.06);
+        }
+
+        .section-title {
+            font-size:1rem;font-weight:700;color:var(--text-1);
+            margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;
+        }
+        .surface-p { background:#fff;border-radius:var(--radius-lg);box-shadow:0 1px 8px rgba(0,0,0,.06);padding:1.25rem; }
+
+        .photos-grid {
+            display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+            gap:.5rem;margin-bottom:1rem;
+        }
+        .photos-grid img {
+            width:100%;height:160px;object-fit:cover;border-radius:8px;
+            cursor:pointer;transition:transform .15s;
+        }
+        .photos-grid img:hover { transform:scale(1.03); }
+
+        .act-timeline { position:relative;padding-left:2rem; }
+        .act-timeline::before {
+            content:"";position:absolute;left:10px;top:8px;bottom:0;
+            width:2px;background:#e2e8f0;border-radius:1px;
+        }
+        .act-item {
+            position:relative;margin-bottom:1rem;padding:.75rem 1rem;
+            background:var(--bg-2,#f8fafc);border-radius:var(--radius-md);
+        }
+        .act-item::before {
+            content:"";position:absolute;left:-1.6rem;top:1rem;
+            width:12px;height:12px;border-radius:50%;
+            background:var(--rose);border:2px solid #fff;box-shadow:0 0 0 2px var(--rose);
+        }
+        .act-time {
+            font-size:.75rem;font-weight:600;color:var(--rose);
+            text-transform:uppercase;letter-spacing:.05em;
+        }
+        .act-title { font-size:.9rem;font-weight:600;color:var(--text-1);margin-top:.15rem; }
+        .act-desc { font-size:.8rem;color:var(--text-2);margin-top:.2rem;line-height:1.4; }
+        .act-actions { margin-top:.3rem;display:flex;gap:.5rem;font-size:.75rem; }
+        .act-actions button { background:none;border:none;cursor:pointer;color:var(--text-3);padding:0; }
+        .act-actions button:hover { color:var(--rose); }
+
+        .lightbox {
+            position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.92);
+            display:flex;align-items:center;justify-content:center;cursor:pointer;
+        }
+        .lightbox img { max-width:95vw;max-height:95vh;object-fit:contain;border-radius:8px; }
+        .lightbox-close {
+            position:absolute;top:1rem;right:1.5rem;color:#fff;font-size:2rem;
+            cursor:pointer;background:none;border:none;
+        }
+        .lightbox-nav {
+            position:absolute;top:50%;transform:translateY(-50%);
+            color:#fff;font-size:2.5rem;cursor:pointer;
+            background:rgba(0,0,0,.3);border:none;border-radius:50%;
+            width:50px;height:50px;display:flex;align-items:center;justify-content:center;
+        }
+        .lightbox-prev { left:1rem; }
+        .lightbox-next { right:1rem; }
+        .lightbox-nav:hover { background:rgba(0,0,0,.6); }
+
+        .inline-form {
+            display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;
+            margin-top:.75rem;
+        }
+        .inline-form input,.inline-form textarea {
+            border:1px solid var(--border);border-radius:8px;padding:.5rem .75rem;
+            font-size:.85rem;font-family:inherit;outline:none;background:#fff;
+            flex:1;min-width:120px;
+        }
+        .inline-form input:focus { border-color:var(--rose); }
+
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        @keyframes scaleIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+        .modal-overlay {
+            position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+            background:rgba(0,0,0,.45);backdrop-filter:blur(3px);animation:fadeIn .2s ease;
+        }
+        .modal-box {
+            background:#fff;border-radius:16px;padding:2rem;max-width:520px;width:90%;
+            max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:scaleIn .2s ease;
+        }
+        .modal-title { font-size:1.2rem;font-weight:700;color:var(--text-1);margin-bottom:1.25rem; }
+        .modal-close { float:right;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-3);padding:0 .25rem;line-height:1; }
+        .modal-close:hover { color:var(--text-1); }
+        .form-stack { display:flex;flex-direction:column;gap:1rem; }
+    </style>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="container-md">
+    <a href="/pages/dates.html" class="back-link">← Volver a Dates</a>
+    <div id="date-content"><div class="spinner"></div></div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const DATE_ID = parseInt(params.get("id"));
+let _currentDate = null;
+let _currentUser = null;
+
+function photoUrl(photoId, thumb = false) {
+    return `/api/dates/photos/${photoId}/image${thumb ? "?thumbnail=true" : ""}`;
+}
+
+function escapeHtml(str) { return (str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function formatDateVerbose(iso) {
+    if (!iso) return "";
+    const [y,m,d] = iso.split("-");
+    const months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+    return `${parseInt(d)} de ${months[parseInt(m)-1]} de ${y}`;
+}
+
+// ── Lightbox ──────────────────────────
+function showLightbox(photos, idx) {
+    const el = document.createElement("div"); el.className = "lightbox";
+    el.onclick = (e) => { if (e.target===el) el.remove(); };
+    renderLightboxContent(el, photos, idx);
+    document.body.appendChild(el);
+}
+function renderLightboxContent(el, photos, idx) {
+    el.innerHTML = `
+        <button class="lightbox-close" id="lb-close">&times;</button>
+        ${idx > 0 ? `<button class="lightbox-nav lightbox-prev" id="lb-prev">‹</button>` : ""}
+        <img src="${photoUrl(photos[idx].id)}" />
+        ${idx < photos.length-1 ? `<button class="lightbox-nav lightbox-next" id="lb-next">›</button>` : ""}
+    `;
+    document.getElementById("lb-close").onclick = () => el.remove();
+    const prev = document.getElementById("lb-prev");
+    const next = document.getElementById("lb-next");
+    if (prev) prev.onclick = (e) => { e.stopPropagation(); renderLightboxContent(el, photos, idx-1); };
+    if (next) next.onclick = (e) => { e.stopPropagation(); renderLightboxContent(el, photos, idx+1); };
+    document.addEventListener("keydown", function handler(ev) {
+        if (ev.key === "Escape") { el.remove(); document.removeEventListener("keydown", handler); }
+        if (ev.key === "ArrowLeft" && prev) { renderLightboxContent(el, photos, idx-1); document.removeEventListener("keydown", handler); }
+        if (ev.key === "ArrowRight" && next) { renderLightboxContent(el, photos, idx+1); document.removeEventListener("keydown", handler); }
+    });
+}
+
+// ── Render ────────────────────────────
+function renderDate() {
+    const d = _currentDate;
+    const photos = d.photos || [];
+
+    const heroHtml = photos.length
+        ? `<img class="detail-hero" src="${photoUrl(photos[0].id, true)}" alt="${escapeHtml(d.title)}" />`
+        : `<div class="detail-hero-placeholder">💕</div>`;
+
+    const locHtml = d.location_name
+        ? `<span class="detail-meta-item">📍 ${escapeHtml(d.location_name)}</span>` : "";
+
+    const mapsBtn = d.maps_url
+        ? `<a href="${d.maps_url}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Ver en Maps</a>` : "";
+
+    const photosHtml = photos.length ? `
+        <div class="surface-p" style="margin-bottom:1.5rem;">
+            <div class="section-title">📷 Fotos <span style="font-weight:400;font-size:.8rem;color:var(--text-3);">(${photos.length})</span></div>
+            <div class="photos-grid" id="photos-grid">
+                ${photos.map((p,i) => `<img src="${photoUrl(p.id, true)}" onclick="showLightbox(_currentDate.photos, ${i})" loading="lazy" />`).join("")}
+            </div>
+            <form id="add-photo-form" class="inline-form" style="margin-top:.5rem;">
+                <input type="file" accept="image/*" multiple required style="flex:1;padding:.4rem;" />
+                <button class="btn btn-primary btn-sm" type="submit">+ Agregar</button>
+            </form>
+        </div>` : `
+        <div class="surface-p" style="margin-bottom:1.5rem;">
+            <div class="section-title">📷 Fotos</div>
+            <div style="text-align:center;padding:1.5rem;color:var(--text-3);font-size:.85rem;">
+                Todavía no hay fotos
+            </div>
+            <form id="add-photo-form" class="inline-form" style="margin-top:.5rem;">
+                <input type="file" accept="image/*" multiple required style="flex:1;padding:.4rem;" />
+                <button class="btn btn-primary btn-sm" type="submit">+ Agregar fotos</button>
+            </form>
+        </div>`;
+
+    const acts = d.activities || [];
+    const actsHtml = `
+        <div class="surface-p" style="margin-bottom:1.5rem;">
+            <div class="section-title">📋 Actividades <span style="font-weight:400;font-size:.8rem;color:var(--text-3);">(${acts.length})</span></div>
+            <div class="act-timeline" id="act-timeline">
+                ${acts.length ? acts.map(a => `
+                    <div class="act-item" id="act-${a.id}">
+                        ${a.time_at ? `<div class="act-time">${a.time_at}</div>` : ""}
+                        <div class="act-title">${escapeHtml(a.title)}</div>
+                        ${a.description ? `<div class="act-desc">${escapeHtml(a.description)}</div>` : ""}
+                        <div class="act-actions">
+                            <button onclick="deleteActivity(${a.id})">Eliminar</button>
+                        </div>
+                    </div>
+                `).join("") : `<div style="font-size:.85rem;color:var(--text-3);padding:.5rem 0;">Todavía no hay actividades</div>`}
+            </div>
+            <form id="add-act-form" class="inline-form" style="margin-top:.75rem;">
+                <input type="time" id="act-time" style="max-width:120px;" placeholder="Hora" />
+                <input type="text" id="act-title" required placeholder="Qué hicieron..." style="flex:2;" />
+                <button class="btn btn-primary btn-sm" type="submit">+ Agregar</button>
+            </form>
+        </div>`;
+
+    const editDeleteHtml = `
+        <div style="display:flex;gap:.5rem;margin-bottom:2rem;">
+            <button class="btn btn-secondary btn-sm" id="btn-edit-date">Editar info</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--rose);" id="btn-delete-date">Eliminar</button>
+        </div>`;
+
+    document.getElementById("date-content").innerHTML = `
+        ${heroHtml}
+        <div class="detail-header">
+            <div class="detail-title">${escapeHtml(d.title)}</div>
+            <div>${mapsBtn}</div>
+        </div>
+        <div class="detail-meta">
+            <span class="detail-meta-item">📅 ${formatDateVerbose(d.date_occurred)}</span>
+            ${locHtml}
+        </div>
+        ${d.description ? `<div class="detail-desc">${escapeHtml(d.description)}</div>` : ""}
+        ${photosHtml}
+        ${actsHtml}
+        ${editDeleteHtml}
+        <div id="map-container" style="height:300px;border-radius:var(--radius-lg);overflow:hidden;margin-bottom:2rem;display:none;"></div>
+    `;
+
+    // Map
+    if (d.maps_url) loadMap(d);
+
+    // Photo upload
+    document.getElementById("add-photo-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const fd = new FormData();
+        const files = e.target.querySelector("input[type=file]").files;
+        for (const f of files) fd.append("photos", f);
+        await api.addDatePhotos(DATE_ID, fd);
+        await refreshDate();
+    };
+
+    // Add activity
+    document.getElementById("add-act-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const title = document.getElementById("act-title").value.trim();
+        if (!title) return;
+        const fd = new FormData();
+        fd.append("title", title);
+        const time = document.getElementById("act-time").value;
+        if (time) fd.append("time_at", time);
+        await api.createDateActivity(DATE_ID, fd);
+        document.getElementById("act-title").value = "";
+        document.getElementById("act-time").value = "";
+        await refreshDate();
+    };
+
+    document.getElementById("btn-edit-date").onclick = showEditForm;
+    document.getElementById("btn-delete-date").onclick = async () => {
+        if (!confirm(`¿Eliminar "${d.title}"?`)) return;
+        await api.deleteDate(DATE_ID);
+        window.location.href = "/pages/dates.html";
+    };
+}
+
+async function refreshDate() {
+    _currentDate = await api.getDate(DATE_ID);
+    renderDate();
+}
+
+function deleteActivity(actId) {
+    api.deleteDateActivity(actId).then(refreshDate);
+}
+
+function showEditForm() {
+    const d = _currentDate;
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.innerHTML = `
+        <div class="modal-box">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <div class="modal-title">Editar fecha</div>
+            <form id="edit-form" class="form-stack">
+                <div class="form-group">
+                    <label class="form-label">Título</label>
+                    <input class="form-input" type="text" id="e-title" value="${escapeHtml(d.title)}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fecha</label>
+                    <input class="form-input" type="date" id="e-date" value="${d.date_occurred}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ubicación</label>
+                    <input class="form-input" type="text" id="e-location" value="${escapeHtml(d.location_name || "")}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Link de Google Maps</label>
+                    <input class="form-input" type="url" id="e-maps" value="${escapeHtml(d.maps_url || "")}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Descripción</label>
+                    <textarea class="form-input" id="e-desc" rows="3">${escapeHtml(d.description || "")}</textarea>
+                </div>
+                <div style="margin-top:.5rem;display:flex;gap:.5rem;">
+                    <button class="btn btn-primary" type="submit">Guardar</button>
+                    <button class="btn btn-ghost" type="button" id="btn-cancel-edit">Cancelar</button>
+                </div>
+            </form>
+        </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById("modal-close").onclick = () => overlay.remove();
+    document.getElementById("btn-cancel-edit").onclick = () => overlay.remove();
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    document.getElementById("edit-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector("button[type=submit]");
+        btn.disabled = true; btn.textContent = "Guardando...";
+        try {
+            const fd = new FormData();
+            fd.append("title", document.getElementById("e-title").value.trim());
+            fd.append("date_occurred", document.getElementById("e-date").value);
+            const loc = document.getElementById("e-location").value.trim();
+            if (loc) fd.append("location_name", loc);
+            const maps = document.getElementById("e-maps").value.trim();
+            if (maps) fd.append("maps_url", maps);
+            const desc = document.getElementById("e-desc").value.trim();
+            if (desc) fd.append("description", desc);
+            await api.updateDate(DATE_ID, fd);
+            overlay.remove();
+            await refreshDate();
+            document.querySelector(".detail-hero, .detail-hero-placeholder")?.scrollIntoView({ behavior: "smooth" });
+        } catch (err) {
+            alert("Error: " + err.message);
+        } finally {
+            btn.disabled = false; btn.textContent = "Guardar";
+        }
+    };
+}
+
+function loadMap(d) {
+    const coords = (d.maps_url || "").match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (!coords) { document.getElementById("map-container").style.display = "none"; return; }
+    const lat = parseFloat(coords[1]), lng = parseFloat(coords[2]);
+    const mapEl = document.getElementById("map-container");
+    mapEl.style.display = "";
+    mapEl.innerHTML = "";
+    const map = L.map(mapEl).setView([lat, lng], 15);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap', maxZoom: 19,
+    }).addTo(map);
+    L.marker([lat, lng]).addTo(map);
+    if (d.location_name) mapEl.scrollIntoView({ behavior: "smooth" });
+}
+
+(async () => {
+    const user = await requireAuth();
+    if (!user || !DATE_ID) { window.location.href = "/pages/dates.html"; return; }
+    _currentUser = user;
+    _currentDate = await api.getDate(DATE_ID);
+    document.title = `${_currentDate.title} — LovingApp`;
+    renderDate();
+})();
+</script>
+</body>
+</html>

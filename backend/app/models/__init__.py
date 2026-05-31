@@ -4,3 +4,6 @@ from app.models.place import Place
 from app.models.couple import Couple
 from app.models.todo import Todo
 from app.models.global_todo import GlobalTodo
+from app.models.date_entry import DateEntry
+from app.models.date_photo import DatePhoto
+from app.models.date_activity import DateActivity

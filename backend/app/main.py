@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
 from app.core.database import Base, engine
 from app.models import User, Trip
-from app.routers import auth, profile, trips, admin, places, couple, todos, global_todos
+from app.routers import auth, profile, trips, admin, places, couple, todos, global_todos, dates
 
 Base.metadata.create_all(bind=engine)
 
@@ -39,6 +39,7 @@ app.include_router(places.router)
 app.include_router(couple.router)
 app.include_router(todos.router)
 app.include_router(global_todos.router)
+app.include_router(dates.router)
 
 
 @app.get("/api/health")
