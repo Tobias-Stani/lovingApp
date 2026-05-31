@@ -279,11 +279,23 @@ function renderDate() {
     // Photo upload
     document.getElementById("add-photo-form").onsubmit = async (e) => {
         e.preventDefault();
-        const fd = new FormData();
-        const files = e.target.querySelector("input[type=file]").files;
-        for (const f of files) fd.append("photos", f);
-        await api.addDatePhotos(DATE_ID, fd);
-        await refreshDate();
+        const btn = e.target.querySelector("button[type=submit]");
+        const input = e.target.querySelector("input[type=file]");
+        if (!input.files.length) return;
+        btn.disabled = true;
+        btn.textContent = "Subiendo...";
+        try {
+            const fd = new FormData();
+            for (const f of input.files) fd.append("photos", f);
+            await api.addDatePhotos(DATE_ID, fd);
+            input.value = "";
+            await refreshDate();
+        } catch (err) {
+            alert("Error al subir fotos: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "+ Agregar";
+        }
     };
 
     // Add activity
