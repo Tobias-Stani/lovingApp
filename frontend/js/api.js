@@ -1,6 +1,4 @@
-const API = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-    ? (window.BACKEND_URL || "http://localhost:8088")
-    : "";
+const API = "";
 
 async function apiFetch(path, options = {}) {
     const res = await fetch(API + path, {

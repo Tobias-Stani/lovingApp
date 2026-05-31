@@ -42,6 +42,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: "3000"
+      BACKEND_URL: "https://backend-production-a3b1b.up.railway.app"
     ports:
       - "3000:3000"
     volumes:
@@ -49,8 +50,6 @@ services:
       - ./frontend/css:/usr/share/nginx/html/css
       - ./frontend/pages:/usr/share/nginx/html/pages
       - ./frontend/index.html:/usr/share/nginx/html/index.html
-    depends_on:
-      - backend
 
 volumes:
   postgres_data:
