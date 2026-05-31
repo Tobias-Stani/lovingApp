@@ -66,14 +66,24 @@
             width:2px;background:#e2e8f0;border-radius:1px;
         }
         .act-item {
-            position:relative;margin-bottom:1rem;padding:.75rem 1rem;
+            position:relative;margin-bottom:.5rem;
             background:var(--bg-2,#f8fafc);border-radius:var(--radius-md);
+            display:flex;align-items:flex-start;gap:.5rem;
+            cursor:default;transition:opacity .15s,box-shadow .15s;
         }
+        .act-item.dragging { opacity:.4; }
+        .act-item.drag-over { box-shadow:0 0 0 2px var(--rose); }
         .act-item::before {
             content:"";position:absolute;left:-1.6rem;top:1rem;
             width:12px;height:12px;border-radius:50%;
             background:var(--rose);border:2px solid #fff;box-shadow:0 0 0 2px var(--rose);
         }
+        .act-drag-handle {
+            padding:.75rem 0 .75rem .75rem;font-size:1.1rem;color:var(--text-3);
+            cursor:grab;user-select:none;line-height:1.5;
+        }
+        .act-drag-handle:active { cursor:grabbing; }
+        .act-body { flex:1;padding:.75rem 1rem .75rem 0;min-width:0; }
         .act-time {
             font-size:.75rem;font-weight:600;color:var(--rose);
             text-transform:uppercase;letter-spacing:.05em;
@@ -248,12 +258,15 @@ function renderDate() {
             <div class="section-title">📋 Actividades <span style="font-weight:400;font-size:.8rem;color:var(--text-3);">(${acts.length})</span></div>
             <div class="act-timeline" id="act-timeline">
                 ${acts.length ? acts.map(a => `
-                    <div class="act-item" id="act-${a.id}">
-                        ${a.time_at ? `<div class="act-time">${a.time_at}</div>` : ""}
-                        <div class="act-title">${escapeHtml(a.title)}</div>
-                        ${a.description ? `<div class="act-desc">${escapeHtml(a.description)}</div>` : ""}
-                        <div class="act-actions">
-                            <button onclick="deleteActivity(${a.id})">Eliminar</button>
+                    <div class="act-item" id="act-${a.id}" draggable="true" data-act-id="${a.id}">
+                        <div class="act-drag-handle">⠿</div>
+                        <div class="act-body">
+                            ${a.time_at ? `<div class="act-time">${a.time_at}</div>` : ""}
+                            <div class="act-title">${escapeHtml(a.title)}</div>
+                            ${a.description ? `<div class="act-desc">${escapeHtml(a.description)}</div>` : ""}
+                            <div class="act-actions">
+                                <button onclick="deleteActivity(${a.id})">Eliminar</button>
+                            </div>
                         </div>
                     </div>
                 `).join("") : `<div style="font-size:.85rem;color:var(--text-3);padding:.5rem 0;">Todavía no hay actividades</div>`}
@@ -290,6 +303,107 @@ function renderDate() {
 
     // Map
     if (d.maps_url) loadMap(d);
+
+    // Drag & drop activities (desktop + touch)
+    const timeline = document.getElementById("act-timeline");
+    let dragSrcId = null;
+    let _touchActId = null;
+    if (timeline) {
+        const getActId = (el) => el?.closest(".act-item")?.dataset?.actId || null;
+
+        async function commitReorder() {
+            const ids = [...timeline.querySelectorAll(".act-item")].map(el => parseInt(el.dataset.actId));
+            try {
+                await api.reorderActivities(DATE_ID, ids);
+            } catch (err) {
+                await refreshDate();
+            }
+        }
+
+        // HTML5 DnD (desktop)
+        timeline.addEventListener("dragstart", (e) => {
+            const item = e.target.closest(".act-item");
+            if (!item) return;
+            dragSrcId = item.dataset.actId;
+            item.classList.add("dragging");
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", dragSrcId);
+        });
+        timeline.addEventListener("dragend", () => {
+            document.querySelectorAll(".act-item").forEach(el => el.classList.remove("dragging","drag-over"));
+        });
+        timeline.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            const item = e.target.closest(".act-item");
+            if (!item || item.dataset.actId === dragSrcId) return;
+            document.querySelectorAll(".act-item").forEach(el => el.classList.remove("drag-over"));
+            item.classList.add("drag-over");
+        });
+        timeline.addEventListener("dragleave", (e) => {
+            e.target.closest(".act-item")?.classList.remove("drag-over");
+        });
+        timeline.addEventListener("drop", async (e) => {
+            e.preventDefault();
+            const target = e.target.closest(".act-item");
+            if (!target || !dragSrcId || target.dataset.actId === dragSrcId) return;
+            document.querySelectorAll(".act-item").forEach(el => el.classList.remove("drag-over"));
+            const src = document.querySelector(`.act-item[data-act-id="${dragSrcId}"]`);
+            if (!src) return;
+            const rect = target.getBoundingClientRect();
+            if (e.clientY > rect.top + rect.height / 2)
+                target.parentNode.insertBefore(src, target.nextSibling);
+            else
+                target.parentNode.insertBefore(src, target);
+            await commitReorder();
+        });
+
+        // Touch DnD (mobile)
+        let touchGhost = null;
+        let touchSrc = null;
+        timeline.addEventListener("touchstart", (e) => {
+            const handle = e.target.closest(".act-drag-handle");
+            if (!handle) return;
+            touchSrc = handle.closest(".act-item");
+            if (!touchSrc) return;
+            touchSrc.classList.add("dragging");
+            touchGhost = touchSrc.cloneNode(true);
+            touchGhost.style.position = "fixed";
+            touchGhost.style.pointerEvents = "none";
+            touchGhost.style.opacity = ".7";
+            touchGhost.style.width = touchSrc.offsetWidth + "px";
+            touchGhost.style.zIndex = "99999";
+            touchGhost.style.transform = "scale(1.02)";
+            touchGhost.style.boxShadow = "0 8px 30px rgba(0,0,0,.15)";
+            document.body.appendChild(touchGhost);
+        }, {passive:true});
+        timeline.addEventListener("touchmove", (e) => {
+            if (!touchGhost) return;
+            e.preventDefault();
+            const t = e.touches[0];
+            touchGhost.style.left = (t.clientX - touchGhost.offsetWidth / 2) + "px";
+            touchGhost.style.top = (t.clientY - 40) + "px";
+            document.querySelectorAll(".act-item").forEach(el => el.classList.remove("drag-over"));
+            const target = document.elementFromPoint(t.clientX, t.clientY)?.closest(".act-item");
+            if (target && target !== touchSrc) target.classList.add("drag-over");
+        }, {passive:false});
+        timeline.addEventListener("touchend", async (e) => {
+            if (!touchGhost || !touchSrc) return;
+            touchGhost.remove(); touchGhost = null;
+            document.querySelectorAll(".act-item").forEach(el => el.classList.remove("dragging","drag-over"));
+            const t = e.changedTouches[0];
+            const target = document.elementFromPoint(t.clientX, t.clientY)?.closest(".act-item");
+            if (target && target !== touchSrc) {
+                const rect = target.getBoundingClientRect();
+                if (t.clientY > rect.top + rect.height / 2)
+                    target.parentNode.insertBefore(touchSrc, target.nextSibling);
+                else
+                    target.parentNode.insertBefore(touchSrc, target);
+                await commitReorder();
+            }
+            touchSrc = null;
+        }, {passive:true});
+    }
 
     // Photo upload
     document.getElementById("add-photo-form").onsubmit = async (e) => {

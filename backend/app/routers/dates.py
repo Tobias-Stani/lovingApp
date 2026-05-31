@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Q
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from pydantic import BaseModel
+from typing import List
 from app.core.database import get_db
 from app.routers.deps import get_current_user
 from app.models.user import User
@@ -336,11 +337,40 @@ def delete_photo(
     db.commit()
 
 
+class ReorderActivitiesRequest(BaseModel):
+    date_id: int
+    activity_ids: List[int]
+
+
 def _get_date_entry(date_id: int, couple_id: int, db: Session):
     return db.query(DateEntry).filter(
         DateEntry.id == date_id,
         DateEntry.couple_id == couple_id,
     ).first()
+
+
+@router.put("/activities/reorder")
+def reorder_activities(
+    body: ReorderActivitiesRequest,
+    db:  Session = Depends(get_db),
+    user: User   = Depends(get_current_user),
+):
+    couple = _active_couple(user.id, db)
+    if not couple:
+        raise HTTPException(status_code=404, detail="Date no encontrada")
+    entry = _get_date_entry(body.date_id, couple.id, db)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Date no encontrada")
+
+    for pos, act_id in enumerate(body.activity_ids):
+        act = db.query(DateActivity).filter(
+            DateActivity.id == act_id,
+            DateActivity.date_id == entry.id,
+        ).first()
+        if act:
+            act.position = pos
+    db.commit()
+    return {"ok": True}
 
 
 @router.get("/{date_id}/activities")

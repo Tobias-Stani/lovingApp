@@ -60,4 +60,9 @@ const api = {
     createDateActivity:(dateId, formData) => fetch(API + `/api/dates/${dateId}/activities`, { method: "POST", credentials: "include", body: formData }),
     updateDateActivity:(actId, formData) => fetch(API + `/api/dates/activities/${actId}`, { method: "PUT", credentials: "include", body: formData }),
     deleteDateActivity:(actId)          => apiFetch(`/api/dates/activities/${actId}`, { method: "DELETE" }),
+    reorderActivities: (dateId, ids)     => apiFetch(`/api/dates/activities/reorder`, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({date_id: dateId, activity_ids: ids}),
+    }),
 };
